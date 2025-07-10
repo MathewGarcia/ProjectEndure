@@ -899,7 +899,8 @@ void AEnemy::SpawnBossBuff()
 		FVector End = Location + (FVector::DownVector * 1000.f);
 		if(GetWorld()->LineTraceSingleByChannel(HitResult,Location,End,ECC_Visibility))
 		{
-			GetWorld()->SpawnActor<AInteractableBuffActor>(InteractableBuffActor, HitResult.ImpactPoint, FRotator::ZeroRotator, params);
+			FVector SpawnLoc = HitResult.ImpactPoint + (FVector::UpVector * 20.f);
+			GetWorld()->SpawnActor<AInteractableBuffActor>(InteractableBuffActor,SpawnLoc , FRotator::ZeroRotator, params);
 
 		}
 		else {
