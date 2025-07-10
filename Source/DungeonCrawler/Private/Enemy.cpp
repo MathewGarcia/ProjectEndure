@@ -1131,8 +1131,38 @@ void AEnemy::ScaleEnemyAccordingToRound()
 		MaxStamina *= Scale;
 		EnemyParameters.ElementDamage *= Scale;
 		Damage *= Scale;
+		EnemyParameters.Exp *= Scale;
 
 	}
+}
+
+void AEnemy::ToggleEnemy(bool newVal)
+{
+	
+	if(AAIEnemy*AIController = Cast<AAIEnemy>(Controller))
+	{
+		if (UCharacterMovementComponent* CMC = GetCharacterMovement())
+		{
+			bIsEnabled = newVal;
+
+			if (!newVal) {
+				if (CMC->GetGroundMovementMode() != MOVE_None) {
+					CMC->DisableMovement();
+				}
+			}
+			else
+			{
+				if (CMC->GetGroundMovementMode() == MOVE_None) {
+					CMC->SetMovementMode(MOVE_Walking);
+				}
+			}
+			AIController->SetAIEnabled(newVal);
+			SetActorTickEnabled(newVal);
+			//SetActorEnableCollision(newVal);
+			SetActorHiddenInGame(!newVal);
+		}
+	}
+
 }
 
 

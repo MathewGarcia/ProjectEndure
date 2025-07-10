@@ -11,7 +11,7 @@
 AEnvironmentalItem::AEnvironmentalItem()
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
+
 
 	 Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Static Mesh Comp"));
 	 RootComponent = Mesh;
@@ -22,22 +22,39 @@ void AEnvironmentalItem::Destroyed()
 {
 
 	DropItem();
-	if (UMainGameInstance*MGI = Cast<UMainGameInstance>(GetWorld()->GetGameInstance()))
+
+	if (UMainGameInstance* MGI = Cast<UMainGameInstance>(GetWorld()->GetGameInstance()))
 	{
-		if(!MGI->EnvironmentalItemBreaks.IsEmpty())
+		if (!MGI->EnvironmentalItemBreaks.IsEmpty())
 		{
 			USoundBase* SoundToPlay = MGI->EnvironmentalItemBreaks[FMath::RandRange(0, MGI->EnvironmentalItemBreaks.Num() - 1)];
 
-			if(SoundToPlay)
+			if (SoundToPlay)
 			{
-				UGameplayStatics::PlaySoundAtLocation(GetWorld(), SoundToPlay,GetActorLocation());
+				UGameplayStatics::PlaySoundAtLocation(GetWorld(), SoundToPlay, GetActorLocation());
 			}
 
 		}
 	}
 
+
 	Super::Destroyed();
 }
+
+void AEnvironmentalItem::ToggleEnvironmentalItem(bool bNewVal)
+{
+	if (bIsEnabled != bNewVal)
+	{
+		bIsEnabled = bNewVal;
+		SetActorHiddenInGame(!bNewVal);
+
+		if (bWasSimulatingPhysics)
+		{
+			Mesh->SetSimulatePhysics(bNewVal);
+		}
+	}
+}
+
 
 void AEnvironmentalItem::DropItem()
 {
@@ -60,7 +77,9 @@ void AEnvironmentalItem::DropItem()
 void AEnvironmentalItem::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
+	bWasSimulatingPhysics = Mesh->IsSimulatingPhysics();
+
 }
 
 // Called every frame

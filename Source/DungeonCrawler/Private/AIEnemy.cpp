@@ -109,6 +109,7 @@ void AAIEnemy::OnMoveCompleted(FAIRequestID RequestID, const FPathFollowingResul
 
 void AAIEnemy::SetAIEnabled(bool bEnabled)
 {
+	if (!CurrentState) return;
 	CurrentState->SetEnabled(bEnabled);
 }
 

@@ -533,6 +533,19 @@ void APlayerCharacter::ResetTargetedEnemy()
 	TargetedEnemy = nullptr;
 }
 
+void APlayerCharacter::UpdateEXPWidget()
+{
+	if(PlayerHUD)
+	{
+		if (APlayerCharacterState* pcs = GetPlayerCharacterState()) {
+			if (ULevelUpWidget* LevelUpWidget = PlayerHUD->LevelUpWidget)
+			{
+				LevelUpWidget->UpdateEXPProgressBar(pcs->playerStats.GetEXP() / pcs->playerStats.GetNextLevelEXP());
+			}
+		}
+	}
+}
+
 
 // Called when the game starts or when spawned
 void APlayerCharacter::BeginPlay()

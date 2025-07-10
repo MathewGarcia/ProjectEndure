@@ -150,9 +150,18 @@ void ADungeonManager::InitializeWorld()
 					}
 				}
 			}
+
+
+			UGameplayStatics::GetAllActorsOfClass(GetWorld(), AEnemy::StaticClass(), CurrentEnemiesArr);
+			UGameplayStatics::GetAllActorsOfClass(GetWorld(), AEnvironmentalItem::StaticClass(), CurrentEnvironmentalItems);
+
 		}, 0.5f, false);
 	SetDeadEndItems();
 	PlaceQuest();
+
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AEnemy::StaticClass(), CurrentEnemiesArr);
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AEnvironmentalItem::StaticClass(), CurrentEnvironmentalItems);
+
 
 	if(UMainGameInstance*MGI = Cast<UMainGameInstance>(GetWorld()->GetGameInstance()))
 	{
@@ -1663,12 +1672,55 @@ void ADungeonManager::ReactivateTeleporter(AOrbTeleporter* TeleporterToReactivat
 	}
 }
 
+void ADungeonManager::ToggleActors()
+{
+	if (!player) return;
+
+	// Enemies
+	for (AActor* EnemyActor : CurrentEnemiesArr)
+	{
+		if (AEnemy* Enemy = Cast<AEnemy>(EnemyActor))
+		{
+			float Distance = (Enemy->GetActorLocation() - player->GetActorLocation()).Size();
+			bool bShouldEnable = Distance <= OptimizeDistance;
+
+			// Always explicitly set
+			Enemy->ToggleEnemy(bShouldEnable);
+		}
+	}
+
+	// Environmental Items
+	for (AActor* EnvironmentalItemActor : CurrentEnvironmentalItems)
+	{
+		if (AEnvironmentalItem* EnvironmentalItem = Cast<AEnvironmentalItem>(EnvironmentalItemActor))
+		{
+			float Distance = (EnvironmentalItem->GetActorLocation() - player->GetActorLocation()).Size();
+			bool bShouldEnable = Distance <= OptimizeDistance;
+
+			EnvironmentalItem->ToggleEnvironmentalItem(bShouldEnable);
+		}
+	}
+
+	// Dungeon Tiles
+	for (AActor* DungeonTile : CurrentDungeonPieces)
+	{
+		if (ADungeonPieceActor* Tile = Cast<ADungeonPieceActor>(DungeonTile))
+		{
+			float Distance = (Tile->GetActorLocation() - player->GetActorLocation()).Size();
+			bool bShouldEnable = Distance <= OptimizeDistance;
+
+			Tile->ToggleDungeonPiece(bShouldEnable);
+		}
+	}
+}
+
 
 // Called when the game starts or when spawned
 void ADungeonManager::BeginPlay()
 {
 	Super::BeginPlay();
 
+	
 	InitializeWorld();
 
 }
@@ -1677,5 +1729,7 @@ void ADungeonManager::BeginPlay()
 void ADungeonManager::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	ToggleActors();
 
 }

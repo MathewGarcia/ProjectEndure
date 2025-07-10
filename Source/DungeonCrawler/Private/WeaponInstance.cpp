@@ -2,12 +2,8 @@
 
 
 #include "WeaponInstance.h"
-
-#include "InGamePlayerHUD.h"
 #include "InventoryWidget.h"
-#include "Item.h"
-#include "LevelUpWidget.h"
-#include "MainPlayerWidget.h"
+#include "PlayerCharacter.h"
 #include "PlayerCharacterState.h"
 #include "WeaponInstanceSaveData.h"
 #include "WeaponItemData.h"
@@ -26,15 +22,9 @@ void UWeaponInstance::UpgradeWeapon()
 
 			pcs->playerStats.UpdateEXP(-EXPNeeded);
 
-			if (APlayerController* PC = Cast<APlayerController>(pcs->GetPlayerController()))
+			if(APlayerCharacter*player = Cast<APlayerCharacter>(pcs->GetPawn()))
 			{
-				if (AInGamePlayerHUD* PlayerHUD = Cast<AInGamePlayerHUD>(PC->GetHUD()))
-				{
-					if (ULevelUpWidget* LevelUpWidget = Cast<ULevelUpWidget>(PlayerHUD->LevelUpWidget))
-					{
-						LevelUpWidget->UpdateEXPProgressBar(pcs->playerStats.GetEXP() / pcs->playerStats.GetNextLevelEXP());
-					}
-				}
+				player->UpdateEXPWidget();
 			}
 
 		}

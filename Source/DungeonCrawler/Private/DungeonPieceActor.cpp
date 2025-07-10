@@ -181,6 +181,13 @@ FTransform ADungeonPieceActor::GetWallTransform()
 	return FTransform::Identity;
 }
 
+void ADungeonPieceActor::ToggleDungeonPiece(bool bNewVal)
+{
+	bIsEnabled = bNewVal;
+	//SetActorEnableCollision(!bNewVal);
+	SetActorHiddenInGame(!bNewVal);
+}
+
 
 // Called when the game starts or when spawned
 void ADungeonPieceActor::BeginPlay()

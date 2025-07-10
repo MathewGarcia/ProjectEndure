@@ -65,6 +65,7 @@ void ASpawnPoint::BeginPlay()
 {
 	Super::BeginPlay();
 
+
 	SpawnEnemy();
 
 }

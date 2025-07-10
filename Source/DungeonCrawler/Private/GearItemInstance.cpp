@@ -8,6 +8,7 @@
 #include "InGamePlayerHUD.h"
 #include "Item.h"
 #include "LevelUpWidget.h"
+#include "PlayerCharacter.h"
 #include "PlayerCharacterState.h"
 
 
@@ -50,16 +51,10 @@ void UGearItemInstance::UpgradeGear()
 
 			pcs->playerStats.UpdateEXP(-EXPNeeded);
 
-			if (APlayerController* PC = Cast<APlayerController>(pcs->GetPlayerController()))
-			{
-				if (AInGamePlayerHUD* PlayerHUD = Cast<AInGamePlayerHUD>(PC->GetHUD()))
-				{
-					if (ULevelUpWidget* LevelUpWidget = Cast<ULevelUpWidget>(PlayerHUD->LevelUpWidget))
-					{
-						LevelUpWidget->UpdateEXPProgressBar(pcs->playerStats.GetEXP() / pcs->playerStats.GetNextLevelEXP());
-					}
-				}
+			if (APlayerCharacter* player = Cast<APlayerCharacter>(pcs->GetPawn())) {
+				player->UpdateEXPWidget();
 			}
+
 		}
 
 		++GearLevel;
