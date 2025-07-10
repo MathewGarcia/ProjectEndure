@@ -1,0 +1,73 @@
+// Fill out your copyright notice in the Description page of Project Settings.
+
+
+#include "EnvironmentalItem.h"
+
+#include "Item.h"
+#include "MainGameInstance.h"
+#include "Kismet/GameplayStatics.h"
+
+// Sets default values
+AEnvironmentalItem::AEnvironmentalItem()
+{
+ 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+	PrimaryActorTick.bCanEverTick = true;
+
+	 Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Static Mesh Comp"));
+	 RootComponent = Mesh;
+}
+
+
+void AEnvironmentalItem::Destroyed()
+{
+
+	DropItem();
+	if (UMainGameInstance*MGI = Cast<UMainGameInstance>(GetWorld()->GetGameInstance()))
+	{
+		if(!MGI->EnvironmentalItemBreaks.IsEmpty())
+		{
+			USoundBase* SoundToPlay = MGI->EnvironmentalItemBreaks[FMath::RandRange(0, MGI->EnvironmentalItemBreaks.Num() - 1)];
+
+			if(SoundToPlay)
+			{
+				UGameplayStatics::PlaySoundAtLocation(GetWorld(), SoundToPlay,GetActorLocation());
+			}
+
+		}
+	}
+
+	Super::Destroyed();
+}
+
+void AEnvironmentalItem::DropItem()
+{
+	float ShouldDropItem = FMath::FRandRange(0.f, 1.f);
+
+	if(ShouldDropItem <= 0.1)
+	{
+		int32 Random = FMath::RandRange(0, ItemToDropClass.Num() - 1);
+		if (ItemToDropClass.IsValidIndex(Random))
+		{
+			FActorSpawnParameters params;
+			params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+			GetWorld()->SpawnActor<AItem>(ItemToDropClass[Random], GetActorLocation(), GetActorRotation(), params);
+		}
+	}
+
+}
+
+// Called when the game starts or when spawned
+void AEnvironmentalItem::BeginPlay()
+{
+	Super::BeginPlay();
+	
+}
+
+// Called every frame
+void AEnvironmentalItem::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+
+}
+
