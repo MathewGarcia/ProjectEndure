@@ -21,23 +21,6 @@ AEnvironmentalItem::AEnvironmentalItem()
 void AEnvironmentalItem::Destroyed()
 {
 
-	DropItem();
-
-	if (UMainGameInstance* MGI = Cast<UMainGameInstance>(GetWorld()->GetGameInstance()))
-	{
-		if (!MGI->EnvironmentalItemBreaks.IsEmpty())
-		{
-			USoundBase* SoundToPlay = MGI->EnvironmentalItemBreaks[FMath::RandRange(0, MGI->EnvironmentalItemBreaks.Num() - 1)];
-
-			if (SoundToPlay)
-			{
-				UGameplayStatics::PlaySoundAtLocation(GetWorld(), SoundToPlay, GetActorLocation());
-			}
-
-		}
-	}
-
-
 	Super::Destroyed();
 }
 
@@ -71,6 +54,37 @@ void AEnvironmentalItem::DropItem()
 		}
 	}
 
+}
+
+
+float AEnvironmentalItem::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator,
+	AActor* DamageCauser)
+{
+
+	Health -= DamageAmount;
+
+	if (Health <= 0)
+	{
+		DropItem();
+
+		if (UMainGameInstance* MGI = Cast<UMainGameInstance>(GetWorld()->GetGameInstance()))
+		{
+			if (!MGI->EnvironmentalItemBreaks.IsEmpty())
+			{
+				USoundBase* SoundToPlay = MGI->EnvironmentalItemBreaks[FMath::RandRange(0, MGI->EnvironmentalItemBreaks.Num() - 1)];
+
+				if (SoundToPlay)
+				{
+					UGameplayStatics::PlaySoundAtLocation(GetWorld(), SoundToPlay, GetActorLocation());
+				}
+
+			}
+		}
+
+		Destroy();
+	}
+
+	return Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
 }
 
 // Called when the game starts or when spawned

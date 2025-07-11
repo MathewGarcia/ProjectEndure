@@ -2,16 +2,11 @@
 
 
 #include "BossMonstrosity.h"
-
 #include "AIEnemy.h"
-#include "LevelUpWidget.h"
-#include "MainGameInstance.h"
 #include "MainPlayerWidget.h"
 #include "DebuffActor.h"
 #include "PlayerCharacter.h"
-#include "InGamePlayerHUD.h"
-#include "InteractableBuffActor.h"
-#include "Components/VerticalBox.h"
+
 
 void ABossMonstrosity::SpawnEnemies()
 {
@@ -27,6 +22,13 @@ void ABossMonstrosity::SpawnEnemies()
 			if (AEnemy* SpawnedEnemy = GetWorld()->SpawnActor<AEnemy>(EnemyToSpawn, SpawnLocation, GetActorRotation()))
 			{
 				ActiveSludges.Add(SpawnedEnemy);
+
+				if(AAIEnemy*EnemyController = Cast<AAIEnemy>(SpawnedEnemy->GetController()))
+				{
+					if (EnemyController->AttackState.IsValid()) {
+						EnemyController->ChangeAIState(EnemyController->AttackState.Get());
+					}
+				}
 			}
 		}
 	}

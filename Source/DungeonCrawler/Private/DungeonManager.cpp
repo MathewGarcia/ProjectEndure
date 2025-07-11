@@ -224,7 +224,7 @@ FIntVector ADungeonManager::RollForDirection(ADungeonPieceActor* SelectedDungeon
 		}
 	//if its not in the list of already rolled, add it.
 	NumbersToIgnore.Add(RolledNum);
-
+	
 	switch (RolledNum)
 	{
 		//straight

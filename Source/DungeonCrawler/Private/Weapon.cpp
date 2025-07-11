@@ -438,12 +438,14 @@ void AWeapon::Tick(float DeltaTime)
 					else if (AEnvironmentalItem* EnvironmentalItem = Cast<AEnvironmentalItem>(Hit.GetActor()))
 					{
 						if (EnvironmentalItem->ActorHasTag("Destructible")) {
+
+							EnvironmentalItem->TakeDamage(100.f, FDamageEvent(), GetOwner()->GetInstigatorController(), GetOwner());
+
 							UNiagaraComponent* NiagaraComponent = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), EnvironmentalItem->NiagaraSystemToPlay, EnvironmentalItem->GetActorLocation());
 							if (NiagaraComponent && EnvironmentalItem->Mesh && EnvironmentalItem->Mesh->GetStaticMesh())
 							{
 								NiagaraComponent->SetVariableStaticMesh(FName("User.BrokenMesh"), EnvironmentalItem->Mesh->GetStaticMesh());
 							}
-							EnvironmentalItem->Destroy();
 						}
 					}
 				}

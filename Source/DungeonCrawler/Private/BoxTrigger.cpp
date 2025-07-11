@@ -11,6 +11,7 @@
 #include "Boss_Wave.h"
 #include "InGamePlayerHUD.h"
 #include "LevelMusicActor.h"
+#include "MainGameInstance.h"
 #include "MainPlayerWidget.h"
 #include "Components/AudioComponent.h"
 #include "Components/TextBlock.h"
@@ -57,6 +58,10 @@ void ABoxTrigger::BeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor*
 
 					if(AAIEnemy*AIEnemyController = Cast<AAIEnemy>(Enemy->GetController()))
 					{
+						if(UMainGameInstance*MGI = Cast<UMainGameInstance>(GetWorld()->GetGameInstance()))
+						{
+							AIEnemyController->Player = MGI->localPlayer;
+						}
 						AIEnemyController->ChangeAIState(AIEnemyController->AttackState.Get());
 					}
 					Box->SetCollisionEnabled(ECollisionEnabled::Type::NoCollision);
