@@ -43,6 +43,7 @@ void AAoEHealActor::BeginOverlap(UPrimitiveComponent* OverlappedComponent, AActo
 							if (APlayerCharacterState* PCS = player->GetPlayerCharacterState())
 							{
 								PCS->playerStats.currentHealth += OwningObject->HealingAmount;
+								PCS->playerStats.currentMana += OwningObject->HealingAmount;
 
 								if (APlayerController* PC = Cast<APlayerController>(player->GetController())) {
 									if (AInGamePlayerHUD* PlayerHUD = Cast<AInGamePlayerHUD>(PC->GetHUD()))
@@ -50,6 +51,8 @@ void AAoEHealActor::BeginOverlap(UPrimitiveComponent* OverlappedComponent, AActo
 										if (PlayerHUD->GetMainUIWidget())
 										{
 											PlayerHUD->GetMainUIWidget()->UpdateProgressBar("Health", PCS->playerStats.currentHealth / PCS->GetTotalHealth());
+											PlayerHUD->GetMainUIWidget()->UpdateProgressBar("Mana", PCS->playerStats.currentMana / PCS->GetTotalMana());
+
 										}
 									}
 								}

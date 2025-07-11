@@ -21,6 +21,8 @@ public:
 
 	void PlayCameraShake();
 
+	virtual void Destroyed() override;
+
 	UPROPERTY(EditAnywhere,Category = "Camera Shake")
 	TSubclassOf<UCameraShakeBase> CameraShake;
 protected:

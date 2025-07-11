@@ -277,6 +277,10 @@ public:
 
 	void ScaleEnemyAccordingToRound();
 
+	void ToggleEnemy(bool newVal);
+
+	bool bIsEnabled = true;
+
 private:
 	FTimerHandle BuildPoise;
 

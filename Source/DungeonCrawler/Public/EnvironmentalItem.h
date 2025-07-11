@@ -33,11 +33,16 @@ public:
 
 	virtual void Destroyed() override;
 
+	void ToggleEnvironmentalItem(bool bNewVal);
+
 	void DropItem();
+
+	bool bIsEnabled = true;
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
+	bool bWasSimulatingPhysics = false;
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;

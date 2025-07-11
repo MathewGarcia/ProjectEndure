@@ -328,6 +328,7 @@ public:
 
 	void ResetTargetedEnemy();
 
+	void UpdateEXPWidget();
 
 	FOnPlayerReady OnPlayerReady;
 private:

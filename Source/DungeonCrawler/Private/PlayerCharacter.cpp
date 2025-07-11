@@ -1703,7 +1703,7 @@ FVector APlayerCharacter::DeprojectScreen(AWeapon*Weapon)
 		TargetLocation = End;
 	}
 
-	DrawDebugLine(GetWorld(), Weapon->CurrentProjectile->GetActorLocation(), TargetLocation, FColor::Red, true);
+	//DrawDebugLine(GetWorld(), Weapon->CurrentProjectile->GetActorLocation(), TargetLocation, FColor::Red, true);
 
 	return (TargetLocation - Weapon->CurrentProjectile->GetActorLocation()).GetSafeNormal();
 

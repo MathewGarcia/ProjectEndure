@@ -974,7 +974,7 @@ void ADungeonManager::SetColumns(ADungeonPieceActor* SelectedTile)
 				(*NeighborPtr)->SpawnedActor = GetWorld()->SpawnActor<AActor>(ColumnToSpawn, FVector(FinalDirection), FRotator::ZeroRotator);
 			}
 
-			DrawDebugSphere(GetWorld(), FVector(FinalDirection), 100.f, 30, FColor::Green,true);
+			//DrawDebugSphere(GetWorld(), FVector(FinalDirection), 100.f, 30, FColor::Green,true);
 		}
 	}
 
@@ -1028,7 +1028,7 @@ void ADungeonManager::PlaceFakeWalls()
 				
 				GetWorld()->SpawnActor<AActor>(FakeWallToSpawn, Wall->GetComponentTransform());
 
-				DrawDebugSphere(GetWorld(), FVector(FinalDirection), 100.f, 30, FColor::Green, true);
+				//DrawDebugSphere(GetWorld(), FVector(FinalDirection), 100.f, 30, FColor::Green, true);
 			}
 		}
 
@@ -1093,7 +1093,7 @@ void ADungeonManager::PlaceDoorway()
 
 							FIntVector NeighPos = FIntVector(Tile->GetActorLocation()) + Offset * TileSize;
 
-							if (TileGrid.Contains(NeighPos))           // ← edge of the room/hallway
+							if (TileGrid.Contains(NeighPos))           // edge of the room/hallway
 							{
 								if (UStaticMeshComponent** SideWall = Tile->HiddenWalls.Find(Dir))
 								{
@@ -1103,7 +1103,7 @@ void ADungeonManager::PlaceDoorway()
 						}
 
 						if (Wall) {
-							DrawDebugSphere(GetWorld(), Wall->GetComponentLocation(), 100.f, 12, FColor::Magenta, true);
+							//DrawDebugSphere(GetWorld(), Wall->GetComponentLocation(), 100.f, 12, FColor::Magenta, true);
 							GetWorld()->SpawnActor<AActor>(DoorwayToSpawn, Wall->GetComponentTransform(), params);
 						}
 					}
@@ -1250,7 +1250,7 @@ void ADungeonManager::SetEnemiesInRooms()
 
 					TSubclassOf<AActor> SelectedActor = RoleActorToSpawn(SelectedTile->SpawningEnemies);
 					UE_LOG(LogTemp, Warning, TEXT("Spawning Enemy on %s,%f"), *SelectedTile->GetName(), size);
-					DrawDebugSphere(GetWorld(), SelectedTile->GetActorLocation(), 100.f, 30, FColor::Red, true);
+					//DrawDebugSphere(GetWorld(), SelectedTile->GetActorLocation(), 100.f, 30, FColor::Red, true);
 					FVector Location = SelectedTile->GetActorLocation() + (FVector::UpVector * 100.f);
 					if (AActor* SpawnedActor = GetWorld()->SpawnActor<AActor>(SelectedActor, Location, FRotator::ZeroRotator, params))
 					{

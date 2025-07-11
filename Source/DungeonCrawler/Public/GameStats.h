@@ -252,7 +252,7 @@ struct DUNGEONCRAWLER_API FGameStats
 		//owedexp = 30 - 90
 		float owedExp =  currentExp - nextLevelExp;
 		//20%
-		nextLevelExp *= 2.5;
+		nextLevelExp *= 1.2;
 	
 		currentExp = 0;
 
@@ -371,6 +371,9 @@ struct DUNGEONCRAWLER_API FGameStats
 	{
 		return currentExp;
 	}
+
+	void EndAllTimers();
+
 private:
 	float nextLevelExp = 1000;
 	float currentExp;

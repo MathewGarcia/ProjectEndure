@@ -125,6 +125,9 @@ public:
 
 	FTransform GetWallTransform();
 
+	void ToggleDungeonPiece(bool bNewVal);
+
+	bool bIsEnabled = true;
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;

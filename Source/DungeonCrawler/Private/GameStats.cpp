@@ -82,7 +82,7 @@ EElementTypes FGameStats::IncreaseElementProgression(EElementTypes ElementType, 
 					Owner->GetWorld()->GetTimerManager().SetTimer(FResetResistancesTimerHandle, [this]
 					{
 							StartDecreasingElementalProgression();
-					}, 8.f, false);
+					}, 2.f, false);
 
 				}
 			}
@@ -99,6 +99,21 @@ void FGameStats::StartDecreasingElementalProgression()
 	if(APlayerCharacter*player = Cast<APlayerCharacter>(Owner->GetPawn()))
 	{
 		player->DecreaseElementalProgression();
+	}
+}
+
+void FGameStats::EndAllTimers()
+{
+	if(Owner && Owner->GetWorld())
+	{
+		if (APlayerCharacter* player = Cast<APlayerCharacter>(Owner->GetPawn()))
+		{
+			Owner->GetWorld()->GetTimerManager().ClearTimer(FResetResistancesTimerHandle);
+			Owner->GetWorld()->GetTimerManager().ClearTimer(FResetTimerHandle);
+			Owner->GetWorld()->GetTimerManager().ClearTimer(player->FDecreaseElementalTimerHandle);
+
+		}
+
 	}
 }
 

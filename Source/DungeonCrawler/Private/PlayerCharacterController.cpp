@@ -3,8 +3,8 @@
 
 #include "PlayerCharacterController.h"
 
-#include "InputTriggers.h"
-#include "MainGameInstance.h"
+#include "PlayerCharacterState.h"
+
 
 void APlayerCharacterController::BeginPlay()
 {
@@ -36,4 +36,14 @@ void APlayerCharacterController::ShowHideCursor(bool NewVal)
 void APlayerCharacterController::PlayCameraShake()
 {
 	PlayerCameraManager->StartCameraShake(CameraShake);
+}
+
+void APlayerCharacterController::Destroyed()
+{
+	Super::Destroyed();
+
+		if(APlayerCharacterState*PCS = GetPlayerState<APlayerCharacterState>())
+		{
+			PCS->playerStats.EndAllTimers();
+		}
 }

@@ -22,7 +22,7 @@ void UNS_AOE_Stun::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* A
 	if (AEnemy* Enemy = Cast<AEnemy>(MeshComp->GetOwner())) {
 		TArray<AActor*> ActorsToIgnore;
 		ActorsToIgnore.Add(Enemy);
-		DrawDebugSphere(Enemy->GetWorld(), Enemy->GetActorLocation(), 800.f, 15, FColor::Green,true);
+		//DrawDebugSphere(Enemy->GetWorld(), Enemy->GetActorLocation(), 800.f, 15, FColor::Green,true);
 		if(UKismetSystemLibrary::SphereOverlapActors(Enemy->GetWorld(), Enemy->GetActorLocation(), 800.f, ObjectTypes, APlayerCharacter::StaticClass(), ActorsToIgnore, HitActors))
 		{
 			for(AActor*Actor : HitActors)

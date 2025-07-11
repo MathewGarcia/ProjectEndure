@@ -130,7 +130,7 @@ void AProjectile::Explode()
 	if (UKismetSystemLibrary::SphereOverlapActors(GetWorld(), GetActorLocation(), Radius, ObjectTypes, AEnemy::StaticClass(), ActorsToIgnore, HitActors))
 	{
 
-		UKismetSystemLibrary::DrawDebugSphere(GetWorld(), GetActorLocation(), Radius);
+		//UKismetSystemLibrary::DrawDebugSphere(GetWorld(), GetActorLocation(), Radius);
 		if (APlayerCharacter* player = Cast<APlayerCharacter>(GetOwner()))
 		{
 

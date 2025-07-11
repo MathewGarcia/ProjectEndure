@@ -27,6 +27,8 @@ public:
 	// Sets default values for this actor's properties
 	ADungeonManager();
 
+	UPROPERTY(EditAnywhere, Category = "Optimize")
+	float OptimizeDistance = 1200.f;
 
 	UPROPERTY(EditAnywhere, Category = "Dungeon Piece To Spawn")
 	TSubclassOf<ADungeonPieceActor> DungeonPieceClass;
@@ -205,6 +207,8 @@ public:
 
 	void ReactivateTeleporter(AOrbTeleporter* TeleporterToReactivate);
 
+	void ToggleActors();
+
 
 private:
 
@@ -219,6 +223,12 @@ private:
 
 	UPROPERTY();
 	AOrbTeleporter* Teleporter;
+
+	UPROPERTY()
+	TArray<AActor*> CurrentEnemiesArr;
+
+	UPROPERTY()
+	TArray<AActor*> CurrentEnvironmentalItems;
 
 	int CurrentFakeWalls = 0;
 	int CurrentEnemies = 0;

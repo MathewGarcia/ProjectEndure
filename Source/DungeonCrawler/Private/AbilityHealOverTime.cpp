@@ -52,6 +52,8 @@ void UAbilityHealOverTime::Logic()
 					}
 					PCS->playerStats.currentHealth += HealAmount;
 					PCS->playerStats.currentHealth = FMath::Clamp(PCS->playerStats.currentHealth, 0, PCS->GetTotalHealth());
+					PCS->playerStats.currentMana += HealAmount;
+					PCS->playerStats.currentMana = FMath::Clamp(PCS->playerStats.currentMana, 0, PCS->GetTotalMana());
 
 					if (APlayerController* PC = Cast<APlayerController>(player->GetController())) {
 						if (AInGamePlayerHUD* PlayerHUD = Cast<AInGamePlayerHUD>(PC->GetHUD()))
@@ -59,6 +61,8 @@ void UAbilityHealOverTime::Logic()
 							if (PlayerHUD->GetMainUIWidget())
 							{
 								PlayerHUD->GetMainUIWidget()->UpdateProgressBar("Health", PCS->playerStats.currentHealth / PCS->GetTotalHealth());
+								PlayerHUD->GetMainUIWidget()->UpdateProgressBar("Mana", PCS->playerStats.currentMana / PCS->GetTotalMana());
+
 							}
 						}
 					}

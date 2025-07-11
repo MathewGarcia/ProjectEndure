@@ -33,6 +33,7 @@ void UDrink_Heal::Logic()
 		if (APlayerCharacterState* PCS = player->GetPlayerCharacterState())
 		{
 			PCS->playerStats.currentHealth += HealAmount;
+			PCS->playerStats.currentMana += HealAmount;
 
 			if (APlayerController* PC = Cast<APlayerController>(player->GetController())) {
 				if (AInGamePlayerHUD* PlayerHUD = Cast<AInGamePlayerHUD>(PC->GetHUD()))
@@ -40,6 +41,8 @@ void UDrink_Heal::Logic()
 					if (PlayerHUD->GetMainUIWidget())
 					{
 						PlayerHUD->GetMainUIWidget()->UpdateProgressBar("Health", PCS->playerStats.currentHealth / PCS->GetTotalHealth());
+						PlayerHUD->GetMainUIWidget()->UpdateProgressBar("Mana", PCS->playerStats.currentMana / PCS->GetTotalMana());
+
 					}
 				}
 			}
