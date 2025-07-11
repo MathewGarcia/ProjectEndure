@@ -116,6 +116,7 @@ void ADungeonManager::InitializeWorld()
 		
 	}
 
+
 	Goal = CurrentDungeonPieces.Last();
 	PlaceTeleporter();
 
@@ -137,7 +138,8 @@ void ADungeonManager::InitializeWorld()
 			if (player)
 			{
 				SetRoomTheme();
-
+				SetDeadEndItems();
+				PlaceQuest();
 				if (APlayerCharacterState* PCS = player->GetPlayerCharacterState())
 				{
 					for (UAbility* Ability : PCS->LearnedAbilities)
@@ -156,19 +158,11 @@ void ADungeonManager::InitializeWorld()
 			UGameplayStatics::GetAllActorsOfClass(GetWorld(), AEnvironmentalItem::StaticClass(), CurrentEnvironmentalItems);
 
 		}, 0.5f, false);
-	SetDeadEndItems();
-	PlaceQuest();
 
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AEnemy::StaticClass(), CurrentEnemiesArr);
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AEnvironmentalItem::StaticClass(), CurrentEnvironmentalItems);
 
 
 	if(UMainGameInstance*MGI = Cast<UMainGameInstance>(GetWorld()->GetGameInstance()))
 	{
-		if(player)
-		{
-			player->SpawnLocation = CurrentDungeonPieces[0]->GetActorLocation();
-		}
 		MGI->OnDungeonGenerationComplete.Broadcast();
 	}
 
@@ -335,7 +329,7 @@ void ADungeonManager::PlaceTeleporter()
 		else
 		{
 			 SelectedPiece = CurrentDungeonPieces[FMath::RandRange(1, CurrentDungeonPieces.Num() - 1)];
-			SpawnLocation = FIntVector(SelectedPiece->GetActorLocation()) + ((FIntVector(0, 0, 1) * FloorTileZOffset) * Goal->floors);
+			SpawnLocation = FIntVector(SelectedPiece->GetActorLocation()) + ((FIntVector(0, 0, 1) * FloorTileZOffset) * SelectedPiece->floors);
 
 
 		}
@@ -801,128 +795,6 @@ void ADungeonManager::SetRoomTheme()
 		}
 	}
 
-
-	/*
-	for (TArray<ADungeonPieceActor*>& Room : AllRooms)
-	{
-
-		//	PlaceRandomItems(Room);
-
-
-		TMap<ADungeonPieceActor*, TSubclassOf<AEnvironmentalItem>> SuccessfulPieces;
-
-		TArray<ADungeonPieceActor*>CenterPieces;
-		TArray<ADungeonPieceActor*>WallsidePieces;
-		TMap<>
-		TArray<TSubclassOf<AEnvironmentalItem>> EligbleCenterPiece;
-		TArray<TSubclassOf<AEnvironmentalItem>> EligibleWallsidePieces;
-		
-		//get eligible decorations
-		for (int i = 0; i < Decorations.Num(); ++i)
-		{
-			if(ADungeonPieceActor*Tile = Room[0])
-			{
-				if(Decorations[i].PieceType == Tile->PieceType)
-				{
-					if(Decorations[i].Type == EDecorationType::Center)
-					{
-						EligbleCenterPiece.Append(Decorations[i].DecorationPiece);
-					}
-					else
-					{
-						EligibleWallsidePieces.Append(Decorations[i].DecorationPiece);
-					}
-				}
-			}
-		}
-
-
-
-
-		for(int i = 0; i < Room.Num(); ++i)
-		{
-			if(ADungeonPieceActor*Tile = Room[i])
-			{
-				if(OpenNeighborsCount(Tile) > 3)
-				{
-					if (!bIsTileNextToHallway(Tile)) {
-						CenterPieces.Add(Tile);
-					}
-				}
-				else if(OpenNeighborsCount(Tile) == 3)
-				{
-					WallsidePieces.Add(Tile);
-				}
-			}
-		}
-		*/
-
-
-
-		/*
-		FActorSpawnParameters params;
-		params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
-		for(int i = 0; i < CenterPieces.Num(); ++i)
-		{
-
-
-			if (ADungeonPieceActor* Tile = CenterPieces[i])
-			{
-
-				float ShouldDrop = FMath::FRandRange(0.f, 1.f);
-
-				if(!Tile->SpawnedActor && ShouldDrop >= 0.75)
-				{
-					int SelectedPos = FMath::RandRange(0, CenterPieces.Num() - 1);
-					if(EligbleCenterPiece.IsValidIndex(SelectedPos))
-					{
-						TSubclassOf<AEnvironmentalItem> SelectedPiece = EligbleCenterPiece[SelectedPos];
-
-						FVector Location = Tile->GetActorLocation() + ((FVector::UpVector * FloorTileZOffset) * Tile->floors);
-						FRotator Rotation = Tile->GetWallTransform().Rotator();
-
-						if(AEnvironmentalItem*EnvItem = GetWorld()->SpawnActor<AEnvironmentalItem>(SelectedPiece,Location,Rotation, params))
-						{
-							Tile->SpawnedActor = EnvItem;
-						}
-					}
-				}
-			}
-		}
-
-
-		for(int i = 0; i < WallsidePieces.Num(); ++i)
-		{
-			if (ADungeonPieceActor* Tile = WallsidePieces[i])
-			{
-
-				float ShouldDrop = FMath::FRandRange(0.f, 1.f);
-
-				if (!Tile->SpawnedActor && ShouldDrop >= 0.2)
-				{
-					int SelectedPos = FMath::RandRange(0, CenterPieces.Num() - 1);
-					if (EligbleCenterPiece.IsValidIndex(SelectedPos))
-					{
-						TSubclassOf<AEnvironmentalItem> SelectedPiece = EligbleCenterPiece[SelectedPos];
-						FVector Location = Tile->GetActorLocation() + ((FVector::UpVector * FloorTileZOffset) * Tile->floors);
-						FRotator Rotation = Tile->GetWallTransform().Rotator();
-
-
-						if (AEnvironmentalItem* EnvItem = GetWorld()->SpawnActor<AEnvironmentalItem>(SelectedPiece, Location, Rotation, params))
-						{
-							Tile->SpawnedActor = EnvItem;
-						}
-					}
-				}
-			}
-		}*/
-
-		/*
-		UE_LOG(LogTemp, Warning, TEXT("Center Pieces count %d"), CenterPieces.Num());
-		UE_LOG(LogTemp, Warning, TEXT("Wallside Pieces count %d"), WallsidePieces.Num());*/
-
-
-	//SetTrees(Room);
 
 }
 
@@ -1554,7 +1426,7 @@ void ADungeonManager::PlaceQuest()
 
 	if(EligiblePieces.IsValidIndex(RandomNum))
 	{
-		FVector SpawnLocation = EligiblePieces[RandomNum]->GetActorLocation() + (EligiblePieces[RandomNum]->GetActorUpVector() * FloorTileZOffset) * EligiblePieces[RandomNum]->floors;
+		FVector SpawnLocation = FVector(FIntVector(EligiblePieces[RandomNum]->GetActorLocation()) + (FIntVector(0, 0, 1) * FloorTileZOffset * EligiblePieces[RandomNum]->floors));
 		FVector NeighborLocation = (GetNeighboringTile(EligiblePieces[RandomNum])->GetActorLocation() - SpawnLocation).GetSafeNormal();
 		GetWorld()->SpawnActor<ANPC_QuestGiver>(QuestGiver, SpawnLocation,NeighborLocation.Rotation());
 	}

@@ -86,12 +86,12 @@ void AOrbTeleporter::LevelLoaded()
 						//access the player
 						if (APlayerCharacter* player = MGI->localPlayer)
 						{
-							player->SpawnLocation = FoundTeleporter->GetActorLocation();
 
 							FTimerHandle FDelay;
 							GetWorld()->GetTimerManager().SetTimer(FDelay, [player,FoundTeleporter]
 							{
 									player->SetActorLocation(FoundTeleporter->GetActorLocation());
+									player->SpawnLocation = FoundTeleporter->GetActorLocation();
 
 							}, 0.5, false);
 						}
