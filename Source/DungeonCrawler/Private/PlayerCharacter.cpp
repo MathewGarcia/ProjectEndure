@@ -204,66 +204,70 @@ void APlayerCharacter::SetAttackingWeapon(AWeapon* AttackWeapon)
 void APlayerCharacter::DecreaseElementalProgression()
 {
 	if (!SoftPCS.IsValid()) return;
-	GetWorld()->GetTimerManager().SetTimer(FDecreaseElementalTimerHandle, [this]
+
+	TWeakObjectPtr<APlayerCharacter> SafePlayer = this;
+	GetWorld()->GetTimerManager().SetTimer(FDecreaseElementalTimerHandle, [SafePlayer]
 	{
-			
-			if (APlayerCharacterState* PCS = SoftPCS.Get())
-			{
-				int32 max = 6;
-				int32 currentSkips = 0;
-
-				for (auto& pair : PCS->playerStats.ElementProgression)
+			if (!SafePlayer.IsValid()) return;
+			if (APlayerCharacter* localthis = SafePlayer.Get()) {
+				if (APlayerCharacterState* PCS = localthis->SoftPCS.Get())
 				{
-					if (pair.Value <= 0)
+					int32 max = 6;
+					int32 currentSkips = 0;
+
+					for (auto& pair : PCS->playerStats.ElementProgression)
 					{
-						++currentSkips;
-						PlayerHUD->GetMainUIWidget()->SetHorizontalBoxVisibility(pair.Key, ESlateVisibility::Hidden);
-						continue;
-					}
-
-					if(PlayerHUD)
-					{
-						PlayerHUD->GetMainUIWidget()->SetHorizontalBoxVisibility(pair.Key, ESlateVisibility::Visible);
-
-						pair.Value -= 0.05;
-						pair.Value = FMath::Clamp(pair.Value, 0, 1.f);
-
-						FName ProgressBarName = "";
-						switch (pair.Key)
+						if (pair.Value <= 0)
 						{
-						case EElementTypes::Fire:
-							ProgressBarName = "Fire";
-							break;
-						case EElementTypes::Water:
-							ProgressBarName = "Water";
-							break;
-						case EElementTypes::Shadow:
-							ProgressBarName = "Shadow";
-							break;
-						case EElementTypes::Lightening:
-							ProgressBarName = "Lightning";
-							break;
-						case EElementTypes::Bleed:
-							ProgressBarName = "Bleed";
-							break;
-						case EElementTypes::Poison:
-							ProgressBarName = "Poison";
-							break;
-						case EElementTypes::NONE:
-							break;
-
-						default:
-							break;
+							++currentSkips;
+							localthis->PlayerHUD->GetMainUIWidget()->SetHorizontalBoxVisibility(pair.Key, ESlateVisibility::Hidden);
+							continue;
 						}
 
-						PlayerHUD->GetMainUIWidget()->UpdateProgressBar(ProgressBarName, pair.Value);
+						if (localthis->PlayerHUD)
+						{
+							localthis->PlayerHUD->GetMainUIWidget()->SetHorizontalBoxVisibility(pair.Key, ESlateVisibility::Visible);
 
+							pair.Value -= 0.05;
+							pair.Value = FMath::Clamp(pair.Value, 0, 1.f);
+
+							FName ProgressBarName = "";
+							switch (pair.Key)
+							{
+							case EElementTypes::Fire:
+								ProgressBarName = "Fire";
+								break;
+							case EElementTypes::Water:
+								ProgressBarName = "Water";
+								break;
+							case EElementTypes::Shadow:
+								ProgressBarName = "Shadow";
+								break;
+							case EElementTypes::Lightening:
+								ProgressBarName = "Lightning";
+								break;
+							case EElementTypes::Bleed:
+								ProgressBarName = "Bleed";
+								break;
+							case EElementTypes::Poison:
+								ProgressBarName = "Poison";
+								break;
+							case EElementTypes::NONE:
+								break;
+
+							default:
+								break;
+							}
+
+							localthis->PlayerHUD->GetMainUIWidget()->UpdateProgressBar(ProgressBarName, pair.Value);
+
+						}
 					}
-				}
 
-				if (currentSkips >= max)
-				{
-					GetWorld()->GetTimerManager().ClearTimer(FDecreaseElementalTimerHandle);
+					if (currentSkips >= max)
+					{
+						localthis->GetWorld()->GetTimerManager().ClearTimer(localthis->FDecreaseElementalTimerHandle);
+					}
 				}
 			}
 

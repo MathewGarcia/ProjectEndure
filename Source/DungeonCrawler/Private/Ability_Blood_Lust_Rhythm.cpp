@@ -74,14 +74,14 @@ void UAbility_Blood_Lust_Rhythm::PlaySound()
 
 void UAbility_Blood_Lust_Rhythm::PlayWidget(APlayerCharacter* Player)
 {
-	if (!Player) return;
+	if (!Player || !Player->GetWorld()) return;
 
 	if(Player->CurrentLivesWidget)
 	{
 		Player->CurrentLivesWidget->SetWidgetClass(WidgetToShow);
 		Player->CurrentLivesWidget->SetVisibility(true);
 		FTimerHandle LocalTimer;
-		GetWorld()->GetTimerManager().SetTimer(LocalTimer, [Player]
+		Player->GetWorld()->GetTimerManager().SetTimer(LocalTimer, [Player]
 		{
 				Player->ResetCurrentLivesWidget();
 				Player->CurrentLivesWidget->SetVisibility(false);
