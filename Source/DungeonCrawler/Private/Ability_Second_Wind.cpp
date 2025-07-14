@@ -7,6 +7,11 @@
 #include "MainPlayerWidget.h"
 #include "PlayerCharacterState.h"
 
+UAbility_Second_Wind::UAbility_Second_Wind()
+{
+	AbilityActivationType = EAbilityActivationType::Event;
+}
+
 void UAbility_Second_Wind::execute_Implementation()
 {
 	Super::execute_Implementation();

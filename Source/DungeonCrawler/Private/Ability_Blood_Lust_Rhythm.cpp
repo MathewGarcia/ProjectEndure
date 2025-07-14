@@ -35,8 +35,8 @@ void UAbility_Blood_Lust_Rhythm::execute_Implementation()
 								PlayWidget(localPlayer);
 								PlayNiagaraSystem(localPlayer);
 								localPlayer->MontageSpeed = FMath::Max(1.f,localPlayer->MontageSpeed * AttackSpeedModifierPercent);
-								PlaySound();
-								GetWorld()->GetTimerManager().SetTimer(FDurationTimer, [this,safePlayer]()
+								PlaySound(localPlayer->GetWorld());
+								localPlayer->GetWorld()->GetTimerManager().SetTimer(FDurationTimer, [this,safePlayer]()
 								{
 										if (APlayerCharacter* localPlayer = Cast<APlayerCharacter>(safePlayer.Get())) {
 											localPlayer->MontageSpeed = 1.f;
@@ -58,17 +58,15 @@ bool UAbility_Blood_Lust_Rhythm::bShouldExecute_Implementation()
 {
 	if (APlayerCharacterState* PCS = Cast<APlayerCharacterState>(GetOuter()))
 	{
-		if (APlayerCharacter* player = Cast<APlayerCharacter>(PCS->GetPawn())) {
 			return PCS->LearnedAbilities.Contains(this);
-		}
 	}
 	return false;
 }
 
-void UAbility_Blood_Lust_Rhythm::PlaySound()
+void UAbility_Blood_Lust_Rhythm::PlaySound(UWorld* playerWorld)
 {
-	if (SoundToPlay) {
-		UGameplayStatics::PlaySound2D(GetWorld(), SoundToPlay);
+	if (SoundToPlay && playerWorld) {
+		UGameplayStatics::PlaySound2D(playerWorld, SoundToPlay);
 	}
 }
 

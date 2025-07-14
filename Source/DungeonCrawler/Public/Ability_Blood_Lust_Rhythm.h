@@ -37,7 +37,7 @@ class DUNGEONCRAWLER_API UAbility_Blood_Lust_Rhythm : public UAbility
 
 	virtual bool bShouldExecute_Implementation() override;
 
-	void PlaySound();
+	void PlaySound(UWorld*playerWorld);
 
 	void PlayWidget(APlayerCharacter* Player);
 

@@ -7,6 +7,11 @@
 #include "MainPlayerWidget.h"
 #include "PlayerCharacterState.h"
 
+UAbility_Leech::UAbility_Leech(): DamageDealt(0)
+{
+	AbilityActivationType = EAbilityActivationType::Event;
+}
+
 void UAbility_Leech::execute_Implementation()
 {
 	Super::execute_Implementation();

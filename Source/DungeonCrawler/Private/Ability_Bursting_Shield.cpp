@@ -66,10 +66,18 @@ void UAbility_Bursting_Shield::Logic()
 								localPlayerPtr->OnPlayerDamaged.Remove(FShieldDelegateHandle);
 								TArray<AActor*> actorsToIgnore;
 								actorsToIgnore.Add(localPlayerPtr);
-								UGameplayStatics::ApplyRadialDamage(GetWorld(), ReturnDamage, localPlayerPtr->GetActorLocation(), 400.f, nullptr, actorsToIgnore, localPlayerPtr, localPlayerPtr->GetController(), true);
-								if(UNiagaraComponent*localNC = NC.Get())
-								{
-									localNC->DestroyComponent();
+								if (UWorld* playerWorld = localPlayerPtr->GetWorld()) {
+									UGameplayStatics::ApplyRadialDamage(playerWorld, ReturnDamage, localPlayerPtr->GetActorLocation(), 400.f, nullptr, actorsToIgnore, localPlayerPtr, localPlayerPtr->GetController(), true);
+								}
+								if (NC.IsValid()) {
+									if (UNiagaraComponent* localNC = NC.Get())
+									{
+										if (!localNC->IsBeingDestroyed())
+										{
+											localNC->DestroyComponent();
+										}
+									}
+									NC = nullptr;
 								}
 								bActivated = false;
 							}

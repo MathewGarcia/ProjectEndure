@@ -260,7 +260,7 @@ public:
 	UPROPERTY()
 	ULiquidDataAsset* CurrentLiquid;
 
-	TQueue<AProjectile_Hook*> Hooks;
+	TQueue<AProjectile_Hook*> Hooks = TQueue<AProjectile_Hook*>();
 
 	int RecentlyPressedAbility = -1;
 

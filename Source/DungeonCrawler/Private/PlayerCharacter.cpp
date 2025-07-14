@@ -556,6 +556,7 @@ void APlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
+
 	if (APlayerController* PlayerController = Cast<APlayerController>(Controller))
 	{
 		PC = PlayerController;

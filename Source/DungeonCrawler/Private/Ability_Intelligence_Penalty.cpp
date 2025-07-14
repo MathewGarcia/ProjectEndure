@@ -9,6 +9,11 @@
 #include "VariableVariant.h"
 #include "Kismet/GameplayStatics.h"
 
+UAbility_Intelligence_Penalty::UAbility_Intelligence_Penalty(): Amount(0)
+{
+	AbilityActivationType = EAbilityActivationType::Event;
+}
+
 void UAbility_Intelligence_Penalty::execute_Implementation()
 {
 	Super::execute_Implementation();

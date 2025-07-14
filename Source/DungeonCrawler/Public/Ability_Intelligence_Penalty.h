@@ -18,6 +18,8 @@ public:
 
 	int Amount;
 
+	UAbility_Intelligence_Penalty();
+
 	virtual void execute_Implementation() override;
 
 	virtual bool bShouldExecute_Implementation() override;

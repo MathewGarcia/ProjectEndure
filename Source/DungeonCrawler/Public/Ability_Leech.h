@@ -15,6 +15,7 @@ class DUNGEONCRAWLER_API UAbility_Leech : public UAbility
 	GENERATED_BODY()
 
 public:
+	UAbility_Leech();
 
 	UPROPERTY(EditAnywhere,Category = "Percent")
 	float Percent = 0.1;

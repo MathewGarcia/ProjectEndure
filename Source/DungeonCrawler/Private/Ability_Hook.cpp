@@ -59,10 +59,13 @@ void UAbility_Hook::Logic()
 
 
 				if (UMainGameInstance* MGI = Cast<UMainGameInstance>(Enemy->GetWorld()->GetGameInstance())) {
-					FVector ShotDirection = (MGI->localPlayer->GetActorLocation() - SpawnedHook->GetActorLocation()).GetSafeNormal();
-					SpawnedHook->LaunchProjectile(1.f, ShotDirection);
-
-					Enemy->GetWorldTimerManager().SetTimer(FCooldown, Cooldown, false);
+					if (MGI->localPlayer) {
+						FVector ShotDirection = (MGI->localPlayer->GetActorLocation() - SpawnedHook->GetActorLocation()).GetSafeNormal();
+						SpawnedHook->LaunchProjectile(1.f, ShotDirection);
+						if (Enemy->GetWorld()) {
+							Enemy->GetWorld()->GetTimerManager().SetTimer(FCooldown, Cooldown, false);
+						}
+					}
 				}
 			}
 		}
@@ -82,7 +85,9 @@ void UAbility_Hook::Logic()
 					SpawnedHook->OwningAbility = this;
 					FVector ShotDirection = player->GetActorForwardVector();
 					SpawnedHook->LaunchProjectile(1.f, ShotDirection);
-					player->GetWorldTimerManager().SetTimer(FCooldown,Cooldown, false);
+					if (player->GetWorld()) {
+						player->GetWorld()->GetTimerManager().SetTimer(FCooldown, Cooldown, false);
+					}
 				}
 			}
 		}
@@ -103,7 +108,7 @@ void UAbility_Hook::OnTriggered()
 				AProjectile_Hook* CurrentHook = nullptr;
 				player->Hooks.Dequeue(CurrentHook);
 
-				if (CurrentHook)
+				if (IsValid(CurrentHook))
 				{
 					CurrentHook->ReturnHookProjectile();
 				}

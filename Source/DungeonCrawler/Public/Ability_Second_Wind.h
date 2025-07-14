@@ -15,6 +15,10 @@ class DUNGEONCRAWLER_API UAbility_Second_Wind : public UAbility
 	GENERATED_BODY()
 
 public:
+
+
+	UAbility_Second_Wind();
+
 	virtual void execute_Implementation() override;
 
 	virtual bool bShouldExecute_Implementation() override;
