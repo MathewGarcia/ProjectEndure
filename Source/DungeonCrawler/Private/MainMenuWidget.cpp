@@ -10,22 +10,27 @@
 void UMainMenuWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
-
-	StartButton->OnClicked.AddDynamic(this, &UMainMenuWidget::OnStartButtonClicked);
-	QuitButton->OnClicked.AddDynamic(this, &UMainMenuWidget::OnQuitButtonClicked);
-	NewPlayerButton->OnClicked.AddDynamic(this, &UMainMenuWidget::OnNewPlayerButtonClicked);
+	if (StartButton) {
+		StartButton->OnClicked.AddDynamic(this, &UMainMenuWidget::OnStartButtonClicked);
+	}
+	if (QuitButton) {
+		QuitButton->OnClicked.AddDynamic(this, &UMainMenuWidget::OnQuitButtonClicked);
+	}
+	if (NewPlayerButton) {
+		NewPlayerButton->OnClicked.AddDynamic(this, &UMainMenuWidget::OnNewPlayerButtonClicked);
+	}
 }
 
 void UMainMenuWidget::OnStartButtonClicked()
 {
-		UGameplayStatics::OpenLevel(this, FName("Hub"));
-
-	
+	UGameplayStatics::OpenLevel(this, FName("Hub"));
 }
 
 void UMainMenuWidget::OnNewPlayerButtonClicked()
 {
-	if(UMainGameInstance*MGI = Cast<UMainGameInstance>(GetWorld()->GetGameInstance()))
+	UWorld* World = GetWorld();
+	if (!World) return;
+	if(UMainGameInstance*MGI = Cast<UMainGameInstance>(World->GetGameInstance()))
 	{
 		MGI->DeleteGameData();
 	}
@@ -33,4 +38,5 @@ void UMainMenuWidget::OnNewPlayerButtonClicked()
 
 void UMainMenuWidget::OnQuitButtonClicked()
 {
+	// Implement quit logic if needed
 }

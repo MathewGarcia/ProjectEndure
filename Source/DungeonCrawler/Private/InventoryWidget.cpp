@@ -19,29 +19,27 @@ void UInventoryWidget::UpdateInventory(TArray<UItemDataObject*> Inventory)
 
 	for (UItemDataObject* item : Inventory)
 	{
-		if (!InventoryItemWidgetClass) return;
+		if (!InventoryItemWidgetClass) continue;
 
 		if (!item || !item->ItemData) continue;
 
 		InventoryTileView->AddItem(item);
 	}
-	
-
 }
-
 
 void UInventoryWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
 
-	if (APlayerCharacterState* pcs = Cast<APlayerCharacterState>(GetOwningPlayer()->GetPlayerState<APlayerCharacterState>()))
+	APlayerController* PC = GetOwningPlayer();
+	if (!PC) return;
+
+	if (APlayerCharacterState* pcs = Cast<APlayerCharacterState>(PC->GetPlayerState<APlayerCharacterState>()))
 	{
 		pcs->FInventoryUpdated.AddUniqueDynamic(this, &UInventoryWidget::UpdateInventory);
 	
 		UpdateInventory(pcs->Inventory);
 
 		UE_LOG(LogTemp, Warning, TEXT("Inventory Widget ready"));
-
-
 	}
 }

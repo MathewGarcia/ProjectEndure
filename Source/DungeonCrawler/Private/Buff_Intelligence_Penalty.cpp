@@ -15,21 +15,24 @@ void UBuff_Intelligence_Penalty::Execute() {
 	{
 		if(APlayerCharacterState*PCS = player->GetPlayerCharacterState())
 		{
-			if(UAbility*IntelPen = NewObject<UAbility>(PCS,AbilityIntellClass))
+			if(AbilityIntellClass)
 			{
-				IntelPen->AbilityActivationType = EAbilityActivationType::Event;
-				int Pos = PCS->LearnedAbilities.Find(IntelPen);
-				//if we find it, just increase the amount
-				if (Pos != INDEX_NONE)
+				if(UAbility*IntelPen = NewObject<UAbility>(PCS,AbilityIntellClass))
 				{
-					if(UAbility_Intelligence_Penalty*FoundIntelPenn = Cast<UAbility_Intelligence_Penalty>(PCS->LearnedAbilities[Pos]))
+					IntelPen->AbilityActivationType = EAbilityActivationType::Event;
+					int Pos = PCS->LearnedAbilities.Find(IntelPen);
+					//if we find it, just increase the amount
+					if (Pos != INDEX_NONE)
 					{
-						++FoundIntelPenn->Amount;
+						if(UAbility_Intelligence_Penalty*FoundIntelPenn = Cast<UAbility_Intelligence_Penalty>(PCS->LearnedAbilities[Pos]))
+						{
+							++FoundIntelPenn->Amount;
+						}
 					}
-				}
-				else
-				{
-					PCS->LearnedAbilities.Add(IntelPen);
+					else
+					{
+						PCS->LearnedAbilities.Add(IntelPen);
+					}
 				}
 			}
 		}

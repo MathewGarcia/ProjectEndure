@@ -331,6 +331,11 @@ public:
 	void UpdateEXPWidget();
 
 	FOnPlayerReady OnPlayerReady;
+
+	AEnemy*GetTargetedEnemy() const
+	{
+		return TargetedEnemy;
+	}
 private:
 
 	EHitDirection HitDirection;

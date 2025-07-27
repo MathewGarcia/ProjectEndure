@@ -226,6 +226,7 @@ public:
 	void HandlePlayerAttack(APlayerCharacter* player, float DamageAmount);
 
 	void HandleDebuffAttack(ADebuffActor* DebuffActor, float DamageAmount);
+	void PositionForSpecialAttack(APlayerCharacter* player, bool bFacePlayer);
 
 	TSubclassOf<AItem> ItemToDrop();
 	void DropItem(TSubclassOf<AItem> itemToDrop);
@@ -280,6 +281,8 @@ public:
 	void ToggleEnemy(bool newVal);
 
 	bool bIsEnabled = true;
+
+	
 
 private:
 	FTimerHandle BuildPoise;

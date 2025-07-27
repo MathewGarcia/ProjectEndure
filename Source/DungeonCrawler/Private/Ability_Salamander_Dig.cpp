@@ -17,10 +17,10 @@
 void UAbility_Salamander_Dig::execute_Implementation()
 {
 	Super::execute_Implementation();
-
 	if(AEnemy*Enemy = Cast<AEnemy>(GetOuter()))
 	{
-		Enemy->PlayAnimMontage(MontageToPlay);
+		if (MontageToPlay)
+			Enemy->PlayAnimMontage(MontageToPlay);
 		bIsActive = true;
 	}
 
@@ -29,37 +29,47 @@ void UAbility_Salamander_Dig::execute_Implementation()
 void UAbility_Salamander_Dig::Logic()
 {
 	Super::Logic();
-
-	if (UMainGameInstance* MGI = Cast<UMainGameInstance>(GetWorld()->GetGameInstance()))
+	UWorld* World = GetWorld();
+	if (!World) return;
+	if (UMainGameInstance* MGI = Cast<UMainGameInstance>(World->GetGameInstance()))
 	{
 		if (APlayerCharacter* player = MGI->localPlayer)
 		{
 			if (AEnemy* Enemy = Cast<AEnemy>(GetOuter()))
 			{
-				if(Enemy->GetCharacterMovement())
+				if(AAIEnemy* AIEnemyController = Cast<AAIEnemy>(Enemy->GetController()))
 				{
-					Enemy->GetCharacterMovement()->MaxWalkSpeed = 1200;
-				}
-				FTimerHandle FSmallDelay;
-				Enemy->bMovementCompleted = false;
-				GetWorld()->GetTimerManager().SetTimer(FSmallDelay, [this,player,Enemy]() 
-				{
+					if(Enemy->GetCharacterMovement())
+					{
+						Enemy->GetCharacterMovement()->MaxWalkSpeed = 1200;
+					}
+					FTimerHandle FSmallDelay;
+					Enemy->bMovementCompleted = false;
+					if (World->GetTimerManager().IsTimerActive(FSmallDelay)) {
+						World->GetTimerManager().ClearTimer(FSmallDelay);
+					}
+					World->GetTimerManager().SetTimer(FSmallDelay, [this,player,Enemy]() 
+					{
 						FVector Location = player->GetActorLocation();
 						if (AAIEnemy* AIEnemyController = Cast<AAIEnemy>(Enemy->GetController())) {
 							if (JumpoutDelegateHandle.IsValid()) {
 								AIEnemyController->GetPathFollowingComponent()->OnRequestFinished.Remove(JumpoutDelegateHandle);
 							}
-								JumpoutDelegateHandle = AIEnemyController->GetPathFollowingComponent()->OnRequestFinished.AddUFunction(this, "JumpOut");
+							JumpoutDelegateHandle = AIEnemyController->GetPathFollowingComponent()->OnRequestFinished.AddUFunction(this, "JumpOut");
 							AIEnemyController->MoveToLocation(Location, 1.f, false, true, true, false, 0, true);
-
 						}
-				},2.f,false);
-
+					},2.f,false);
+				}
 				TWeakObjectPtr<AEnemy> SafeEnemy= Enemy;
-				GetWorld()->GetTimerManager().SetTimer(FUndergroundShake, [this,SafeEnemy]
+				if (World->GetTimerManager().IsTimerActive(FUndergroundShake)) {
+					World->GetTimerManager().ClearTimer(FUndergroundShake);
+				}
+				World->GetTimerManager().SetTimer(FUndergroundShake, [this,SafeEnemy]
 				{
-						if (!SafeEnemy.IsValid()) return;
-						if (AEnemy* localEnemy = SafeEnemy.Get()) {
+					if (!SafeEnemy.IsValid()) return;
+					if (AEnemy* localEnemy = SafeEnemy.Get()) {
+						if (UndergroundCameraShake)
+						{
 							UGameplayStatics::PlayWorldCameraShake(
 								GetWorld(),
 								UndergroundCameraShake,
@@ -68,28 +78,34 @@ void UAbility_Salamander_Dig::Logic()
 								99999.f,
 								2.5f
 							);
-
+						}
+						if (NiagaraSystemToPlay)
+						{
 							UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), NiagaraSystemToPlay, localEnemy->GetActorLocation(), FRotator::ZeroRotator);
+						}
+						if (SoundToPlay)
+						{
 							UGameplayStatics::PlaySoundAtLocation(GetWorld(), SoundToPlay,localEnemy->GetActorLocation(),localEnemy->GetActorRotation());
 						}
-
+					}
 				}, 0.5, true);
 			}
 		}
 	}
-
-
-
-	GetWorld()->GetTimerManager().SetTimer(FCooldown, Cooldown, false);
+	if (World->GetTimerManager().IsTimerActive(FCooldown)) {
+		World->GetTimerManager().ClearTimer(FCooldown);
+	}
+	World->GetTimerManager().SetTimer(FCooldown, Cooldown, false);
 }
 
 bool UAbility_Salamander_Dig::bShouldExecute_Implementation()
 {
 	if (AEnemy* Enemy = Cast<AEnemy>(GetOuter()))
 	{
+		UWorld* World = GetWorld();
 		if (Enemy->EnemyParameters.OffensiveAbilities.Contains(this))
 		{
-			return !bIsActive && !GetWorld()->GetTimerManager().IsTimerActive(FCooldown) && Enemy->GetStamina() >= staminaCost;
+			return !bIsActive && World && !World->GetTimerManager().IsTimerActive(FCooldown) && Enemy->GetStamina() >= staminaCost;
 		}
 	}
 	return false;
@@ -97,8 +113,9 @@ bool UAbility_Salamander_Dig::bShouldExecute_Implementation()
 
 void UAbility_Salamander_Dig::JumpOut()
 {
-
-	if (UMainGameInstance* MGI = Cast<UMainGameInstance>(GetWorld()->GetGameInstance()))
+	UWorld* World = GetWorld();
+	if (!World) return;
+	if (UMainGameInstance* MGI = Cast<UMainGameInstance>(World->GetGameInstance()))
 	{
 		if (APlayerCharacter* player = MGI->localPlayer)
 		{
@@ -106,22 +123,28 @@ void UAbility_Salamander_Dig::JumpOut()
 			{
 
 				if (!Enemy->bMovementCompleted) return;
-				GetWorld()->GetTimerManager().ClearTimer(FUndergroundShake);
-				UGameplayStatics::PlayWorldCameraShake(
-					GetWorld(),
-					BurstingCameraShake,
-					Enemy->GetActorLocation(),
-					0.f,
-					99999.f,
-					2.5f
-				);
-				Enemy->PlayAnimMontage(MontageToPlay, 1.f, "Dig_End");
+				if (World->GetTimerManager().IsTimerActive(FUndergroundShake)) {
+					World->GetTimerManager().ClearTimer(FUndergroundShake);
+				}
+				if (BurstingCameraShake)
+				{
+					UGameplayStatics::PlayWorldCameraShake(
+						World,
+						BurstingCameraShake,
+						Enemy->GetActorLocation(),
+						0.f,
+						99999.f,
+						2.5f
+					);
+				}
+				if (MontageToPlay)
+					Enemy->PlayAnimMontage(MontageToPlay, 1.f, "Dig_End");
 				TArray<TEnumAsByte<EObjectTypeQuery> > ObjectTypes;
 				ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_Pawn));
 				TArray<AActor*> ActorsToIgnore;
 				ActorsToIgnore.Add(Enemy);
 				TArray<AActor*>OutActors;
-				if (UKismetSystemLibrary::SphereOverlapActors(GetWorld(), Enemy->GetActorLocation(), 1000.f, ObjectTypes, player->GetClass(), ActorsToIgnore, OutActors))
+				if (UKismetSystemLibrary::SphereOverlapActors(World, Enemy->GetActorLocation(), 1000.f, ObjectTypes, player->GetClass(), ActorsToIgnore, OutActors))
 				{
 					for (AActor* Actor : OutActors)
 					{
@@ -133,7 +156,6 @@ void UAbility_Salamander_Dig::JumpOut()
 						}
 					}
 				}
-
 				if (AAIEnemy* AIEnemyController = Cast<AAIEnemy>(Enemy->GetController())) {
 					if (JumpoutDelegateHandle.IsValid()) {
 						AIEnemyController->GetPathFollowingComponent()->OnRequestFinished.Remove(JumpoutDelegateHandle);

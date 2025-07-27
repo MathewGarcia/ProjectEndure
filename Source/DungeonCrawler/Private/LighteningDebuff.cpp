@@ -16,9 +16,9 @@ void ULighteningDebuff::ExecuteDebuff_Implementation(AActor* Target, AActor* Dam
 
 	if (APlayerCharacter* player = Cast<APlayerCharacter>(Target))
 	{
-		if(NiagaraSystem)
+		if(NiagaraSystem && player->GetWorld())
 		{
-			UNiagaraComponent* NiagaraComponent = UNiagaraFunctionLibrary::SpawnSystemAtLocation(player->GetWorld(), NiagaraSystem, player->GetActorLocation() + player->GetActorUpVector() * 50.f , FRotator(0.f));
+			UNiagaraFunctionLibrary::SpawnSystemAtLocation(player->GetWorld(), NiagaraSystem, player->GetActorLocation() + player->GetActorUpVector() * 50.f , FRotator(0.f));
 		}
 		player->PlayerStunned();
 
@@ -32,9 +32,9 @@ void ULighteningDebuff::ExecuteDebuff_Implementation(AActor* Target, AActor* Dam
 	else if (AEnemy* enemy = Cast<AEnemy>(Target))
 	{
 
-		if (NiagaraSystem)
+		if (NiagaraSystem && enemy->GetWorld())
 		{
-			UNiagaraComponent* NiagaraComponent = UNiagaraFunctionLibrary::SpawnSystemAtLocation(enemy->GetWorld(), NiagaraSystem, enemy->GetActorLocation()+ enemy->GetActorUpVector() *50.f, FRotator(0.f));
+			UNiagaraFunctionLibrary::SpawnSystemAtLocation(enemy->GetWorld(), NiagaraSystem, enemy->GetActorLocation()+ enemy->GetActorUpVector() *50.f, FRotator(0.f));
 		}
 
 		if (APlayerCharacter* PlayerCharacter = Cast<APlayerCharacter>(DamageCauser)) {

@@ -15,14 +15,13 @@ TUniquePtr<AIDecisionTreeNode> AIState_Attack_Mostrosity::BuildInRange(AEnemy* E
 	 *
 	 */
 
-	if (!PlayerWeakPtr.IsValid()) return nullptr;
-	if (!Enemy) return nullptr;
+	if (!PlayerWeakPtr.IsValid() || !Enemy || !AIEnemyController) return nullptr;
 
 	TUniquePtr<AIDecisionTreeNode> PassivityCheck = DecisionTreeHelper::MakeDecisionNode(8, Enemy->Passivity);
 	TUniquePtr<AIDecisionTreeNode> StaminaCheck = DecisionTreeHelper::MakeDecisionNode(3, Enemy->AttackStaminaReduction);
 	TUniquePtr<AIDecisionTreeNode> StrafePCL = DecisionTreeHelper::MakeLeafNode([this,Enemy]()
 		{
-			if (!PlayerWeakPtr.IsValid()) return;
+			if (!PlayerWeakPtr.IsValid() || !AIEnemyController) return;
 
 			if (APlayerCharacter* player = PlayerWeakPtr.Get())
 			{
@@ -42,7 +41,7 @@ TUniquePtr<AIDecisionTreeNode> AIState_Attack_Mostrosity::BuildInRange(AEnemy* E
 
 	TUniquePtr<AIDecisionTreeNode> StrafeSCL = DecisionTreeHelper::MakeLeafNode([this, Enemy]()
 		{
-			if (!PlayerWeakPtr.IsValid()) return;
+			if (!PlayerWeakPtr.IsValid() || !AIEnemyController) return;
 
 			if (APlayerCharacter* player = PlayerWeakPtr.Get())
 			{
@@ -62,6 +61,7 @@ TUniquePtr<AIDecisionTreeNode> AIState_Attack_Mostrosity::BuildInRange(AEnemy* E
 
 	TUniquePtr<AIDecisionTreeNode> Attack = DecisionTreeHelper::MakeLeafNode([this, Enemy]()
 	{
+			if (!Enemy) return;
 			Enemy->Attack();
 	});
 
@@ -86,14 +86,13 @@ TUniquePtr<AIDecisionTreeNode> AIState_Attack_Mostrosity::BuildNotInRange(AEnemy
 	 *
 	 */
 
-	if (!PlayerWeakPtr.IsValid()) return nullptr;
-	if (!Enemy) return nullptr;
+	if (!PlayerWeakPtr.IsValid() || !Enemy || !AIEnemyController) return nullptr;
 
 	TUniquePtr<AIDecisionTreeNode> PassivityCheck = DecisionTreeHelper::MakeDecisionNode(8, Enemy->Passivity);
 	TUniquePtr<AIDecisionTreeNode> StaminaCheck = DecisionTreeHelper::MakeDecisionNode(3, Enemy->AttackStaminaReduction);
 	TUniquePtr<AIDecisionTreeNode> StrafePCL = DecisionTreeHelper::MakeLeafNode([this, Enemy]()
 		{
-			if (!PlayerWeakPtr.IsValid()) return;
+			if (!PlayerWeakPtr.IsValid() || !AIEnemyController) return;
 
 			if (APlayerCharacter* player = PlayerWeakPtr.Get())
 			{
@@ -113,7 +112,7 @@ TUniquePtr<AIDecisionTreeNode> AIState_Attack_Mostrosity::BuildNotInRange(AEnemy
 
 	TUniquePtr<AIDecisionTreeNode> StrafeSCL = DecisionTreeHelper::MakeLeafNode([this, Enemy]()
 		{
-			if (!PlayerWeakPtr.IsValid()) return;
+			if (!PlayerWeakPtr.IsValid() || !AIEnemyController) return;
 
 			if (APlayerCharacter* player = PlayerWeakPtr.Get())
 			{
@@ -133,6 +132,7 @@ TUniquePtr<AIDecisionTreeNode> AIState_Attack_Mostrosity::BuildNotInRange(AEnemy
 
 	TUniquePtr<AIDecisionTreeNode> HookShot = DecisionTreeHelper::MakeLeafNode([this, Enemy]()
 		{
+			if (!Enemy) return;
 			int pos = Enemy->CanUseAblity(EAbilityType::Offensive);
 			if(pos > -1)
 			{
@@ -156,8 +156,10 @@ TUniquePtr<AIDecisionTreeNode> AIState_Attack_Mostrosity::BuildDecisionTree(AEne
 	TUniquePtr<AIDecisionTreeNode> InRange = BuildInRange(Enemy);
 	TUniquePtr<AIDecisionTreeNode> NotInRange = BuildNotInRange(Enemy);
 
-	Root->LeftChild = MoveTemp(InRange);
-	Root->RightChild = MoveTemp(NotInRange);
+	if (Root) {
+		Root->LeftChild = MoveTemp(InRange);
+		Root->RightChild = MoveTemp(NotInRange);
+	}
 
 	return Root;
 }

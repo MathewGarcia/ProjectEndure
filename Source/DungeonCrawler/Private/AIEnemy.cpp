@@ -23,22 +23,20 @@ AAIEnemy::AAIEnemy()
 
 void AAIEnemy::ChangeAIState(AIStateBase* AIState)
 {
-
-	if(CurrentState)
-	{
-		CurrentState->OnExitState();
-	}
-	CurrentState = AIState;
-	UE_LOG(LogTemp, Warning, TEXT("Changing State"));
-
-	if(Enemy)
-	{
-		if(!Enemy->bUseControllerRotationYaw)
-		Enemy->bUseControllerRotationYaw = true;
-	}
-	if (CurrentState) {
-		CurrentState->OnEnterState();
-	}
+    if(CurrentState)
+    {
+        CurrentState->OnExitState();
+    }
+    CurrentState = AIState;
+    UE_LOG(LogTemp, Warning, TEXT("Changing State"));
+    if(Enemy)
+    {
+        if(!Enemy->bUseControllerRotationYaw)
+            Enemy->bUseControllerRotationYaw = true;
+    }
+    if (CurrentState) {
+        CurrentState->OnEnterState();
+    }
 }
 
 
@@ -88,23 +86,18 @@ bool AAIEnemy::bStatesReady() const
 void AAIEnemy::OnMoveCompleted(FAIRequestID RequestID, const FPathFollowingResult& Result)
 {
 	Super::OnMoveCompleted(RequestID, Result);
-
-	Enemy->bMovementCompleted = true;
-
-	if (!GetWorldTimerManager().IsTimerActive(FResetMovementCompleted)) {
-		TWeakObjectPtr<AEnemy>SoftEnemy = Enemy;
-		GetWorldTimerManager().SetTimer(FResetMovementCompleted, [SoftEnemy]()
-			{
-				if (!SoftEnemy.IsValid()) return;
-
-				if (AEnemy* localEnemy = SoftEnemy.Get()) {
-
-						localEnemy->bWaitCompleted = true;
-					
-				}
-			}, 2.f, false);
-	}
-
+    if (!Enemy) return;
+    Enemy->bMovementCompleted = true;
+    if (!GetWorldTimerManager().IsTimerActive(FResetMovementCompleted)) {
+        TWeakObjectPtr<AEnemy>SoftEnemy = Enemy;
+        GetWorldTimerManager().SetTimer(FResetMovementCompleted, [SoftEnemy]()
+            {
+                if (!SoftEnemy.IsValid()) return;
+                if (AEnemy* localEnemy = SoftEnemy.Get()) {
+                    localEnemy->bWaitCompleted = true;
+                }
+            }, 2.f, false);
+    }
 }
 
 void AAIEnemy::SetAIEnabled(bool bEnabled)
@@ -116,12 +109,13 @@ void AAIEnemy::SetAIEnabled(bool bEnabled)
 void AAIEnemy::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	Super::EndPlay(EndPlayReason);
-
-	GetWorld()->GetTimerManager().ClearAllTimersForObject(this);
-	GetWorld()->GetTimerManager().ClearTimer(FWanderTimerHandle);
-	GetWorld()->GetTimerManager().ClearTimer(FResetMovementCompleted);
-	GetWorld()->GetTimerManager().ClearTimer(FBeginPlayTimer);
-
+    UWorld* World = GetWorld();
+    if (World) {
+        World->GetTimerManager().ClearAllTimersForObject(this);
+        World->GetTimerManager().ClearTimer(FWanderTimerHandle);
+        World->GetTimerManager().ClearTimer(FResetMovementCompleted);
+        World->GetTimerManager().ClearTimer(FBeginPlayTimer);
+    }
 	UnPossess();
 	Destroy();
 }
@@ -129,8 +123,9 @@ void AAIEnemy::EndPlay(const EEndPlayReason::Type EndPlayReason)
 void AAIEnemy::BeginPlay()
 {
 	Super::BeginPlay();
-
-	if (UMainGameInstance* GI = Cast<UMainGameInstance>(GetWorld()->GetGameInstance()))
+    UWorld* World = GetWorld();
+    if (!World) return;
+	if (UMainGameInstance* GI = Cast<UMainGameInstance>(World->GetGameInstance()))
 	{
 		Player = GI->localPlayer;
 		if (Player && bStatesReady())
@@ -140,26 +135,25 @@ void AAIEnemy::BeginPlay()
 
 		}
 		else {
+            GetWorldTimerManager().SetTimer(FBeginPlayTimer, [this]()
+                {
+                    if (!bStatesReady()) return;
+                    UWorld* World = GetWorld();
+                    if (!World) return;
+                    if (UMainGameInstance* GI = Cast<UMainGameInstance>(World->GetGameInstance()))
+                    {
+                        Player = GI->localPlayer;
+                        if (Player)
+                        {
+                            DeadState->PlayerWeakPtr = IdleState->PlayerWeakPtr = DefenseState->PlayerWeakPtr = AttackState->PlayerWeakPtr = Player;
+                            if (GetWorldTimerManager().IsTimerActive(FBeginPlayTimer))
+                            {
+                                GetWorldTimerManager().ClearTimer(FBeginPlayTimer);
+                            }
+                        }
+                    }
 
-			GetWorldTimerManager().SetTimer(FBeginPlayTimer, [this]()
-				{
-					if (!bStatesReady()) return;
-
-					if (UMainGameInstance* GI = Cast<UMainGameInstance>(GetWorld()->GetGameInstance()))
-					{
-						Player = GI->localPlayer;
-						if (Player)
-						{
-							DeadState->PlayerWeakPtr = IdleState->PlayerWeakPtr = DefenseState->PlayerWeakPtr = AttackState->PlayerWeakPtr = Player;
-
-							if (GetWorldTimerManager().IsTimerActive(FBeginPlayTimer))
-							{
-								GetWorldTimerManager().ClearTimer(FBeginPlayTimer);
-							}
-						}
-					}
-
-				}, 0.5, true);
+                }, 0.5, true);
 		}
 	}
 
@@ -168,60 +162,45 @@ void AAIEnemy::BeginPlay()
 void AAIEnemy::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
-
-	if (!IsValid(Enemy)) return;
-
-	if(CurrentState)
-	{
-		CurrentState->TickState(DeltaSeconds);
-	}
-
-	if(features.IsValidIndex(0) && features[0] != CurrentState->GetPlayerDistance())
+    if (!IsValid(Enemy) || !CurrentState) return;
+    CurrentState->TickState(DeltaSeconds);
+    if(features.IsValidIndex(0) && features[0] != CurrentState->GetPlayerDistance())
 	{
 		features[0] = CurrentState->GetPlayerDistance();
 	}
-
 	if(PCS  && features.IsValidIndex(1) && features[1] != PCS->playerStats.currentHealth)
 	{
 		features[1] = PCS->playerStats.currentHealth;
 	}
+    if (Player && Player->GetMesh() && Player->GetMesh()->GetAnimInstance()) {
+        if (Player->GetMesh()->GetAnimInstance()->IsAnyMontagePlaying()) {
+            if (features.IsValidIndex(5))
+                features[5] = Player->GetPlayerMontageTime();
+        }
+        if (features.IsValidIndex(4))
+            features[4] = (Player->GetCurrentState() == PlayerStates::ATTACKING ? 2.0f : -2.0f);
+    }
+	if(features.IsValidIndex(2) && features[2] != Enemy->Health)
+	{
+		features[2] = Enemy->Health;
+	}
+	if(features.IsValidIndex(3) &&  features[3] != Enemy->GetStamina())
+	{
+		features[3] = Enemy->GetStamina();
+	}
+	if (AttackState && DefenseState) {
 
-		if (Player) {
-			if (Player->GetMesh()->GetAnimInstance()->IsAnyMontagePlaying()) {
+		float result = (AttackState->IsPlayerFacingAway(Enemy) || DefenseState->IsPlayerFacingAway(Enemy)) ? 1.0f : 0.0f;
 
-				if (features.IsValidIndex(5))
-					features[5] = Player->GetPlayerMontageTime();
-			}
 
-			if (features.IsValidIndex(4))
-				features[4] = (Player->GetCurrentState() == PlayerStates::ATTACKING ? 2.0f : -2.0f);
+		if (features.IsValidIndex(6) && features[6] != result) {
+			features[6] = result;
 		}
-	
-
-	
-		if(features.IsValidIndex(2) && features[2] != Enemy->Health)
-		{
-			features[2] = Enemy->Health;
-		}
-		if(features.IsValidIndex(3) &&  features[3] != Enemy->GetStamina())
-		{
-			features[3] = Enemy->GetStamina();
-		}
-
-		if (AttackState && DefenseState) {
-
-			float result = (AttackState->IsPlayerFacingAway(Enemy) || DefenseState->IsPlayerFacingAway(Enemy)) ? 1.0f : 0.0f;
-
-
-			if (features.IsValidIndex(6) && features[6] != result) {
-				features[6] = result;
-			}
-		}
-
-		if (features.IsValidIndex(0)) {
-				UE_LOG(LogTemp, Warning, TEXT("Enemy %s: Player Distance: %f  STATE: %s"), *Enemy->GetName() , features[0],*UEnum::GetValueAsName(CurrentState->GetState()).ToString());
-			
-		}
+	}
+	if (features.IsValidIndex(0) && Enemy) {
+			UE_LOG(LogTemp, Warning, TEXT("Enemy %s: Player Distance: %f  STATE: %s"), *Enemy->GetName() , features[0],*UEnum::GetValueAsName(CurrentState->GetState()).ToString());
+		
+	}
 	if (features.IsValidIndex(1))
 		UE_LOG(LogTemp, Warning, TEXT("Player Health: %f"), features[1]);
 	if (features.IsValidIndex(2))
@@ -260,11 +239,24 @@ void AAIEnemy::OnPossess(APawn* InPawn)
 
 		IdleState = MakeUnique<AIState_Idle>();
 		DeadState = MakeUnique<AIState_Dead>();
-		DeadState->AIEnemyController = IdleState->AIEnemyController = DefenseState->AIEnemyController = AttackState->AIEnemyController = this;
-		DeadState->world = IdleState->world = DefenseState->world = AttackState->world = GetWorld();
+		// Ensure all states have correct controller/world assignment
+		if (AttackState) {
+			AttackState->AIEnemyController = this;
+			AttackState->world = GetWorld();
+		}
+		if (DefenseState) {
+			DefenseState->AIEnemyController = this;
+			DefenseState->world = GetWorld();
+		}
+		if (IdleState) {
+			IdleState->AIEnemyController = this;
+			IdleState->world = GetWorld();
+		}
+		if (DeadState) {
+			DeadState->AIEnemyController = this;
+			DeadState->world = GetWorld();
+		}
 	}
-
-
 	GetWorldTimerManager().SetTimer(ReadyCheckHandle, [this,EnemyWeakPtr]() {
 
 		if (!EnemyWeakPtr.IsValid()) return;
@@ -287,9 +279,11 @@ void AAIEnemy::OnPossess(APawn* InPawn)
 				features.Add(LocalEnemy->isFriendlyInRange() && LocalEnemy->EnemyParameters.bCanBuff && LocalEnemy->EnemyParameters.ShouldBuff(LocalEnemy->RecentEnemies, LocalEnemy->EnemyParameters.BuffObject) ? 1.0 : 0.0f); //7 used for checking if AI should buff or go to near by enemies.
 				features.Add(LocalEnemy->Passivity); //8 Passivity float
 				features.Add(LocalEnemy->EnemyParameters.bHasLongRange); //9 do we have a long range attack?
-				features.Add(LocalEnemy->AttackCount >= LocalEnemy->AttackMontage->GetNumSections() ? 1.f : 0.f);//10 should we wait?
-				AttackState->DecisionTree->Root = AttackState->BuildDecisionTree(LocalEnemy);
-				DefenseState->DecisionTree->Root = DefenseState->BuildDecisionTree(LocalEnemy);
+				features.Add(LocalEnemy->AttackCount >= (LocalEnemy->AttackMontage ? LocalEnemy->AttackMontage->GetNumSections() : 0) ? 1.f : 0.f);//10 should we wait?
+				if (AttackState->DecisionTree)
+					AttackState->DecisionTree->Root = AttackState->BuildDecisionTree(LocalEnemy);
+				if (DefenseState->DecisionTree)
+					DefenseState->DecisionTree->Root = DefenseState->BuildDecisionTree(LocalEnemy);
 
 				GetWorldTimerManager().ClearTimer(ReadyCheckHandle);
 			}
@@ -302,7 +296,6 @@ void AAIEnemy::OnPossess(APawn* InPawn)
 		}
 		, 1.0f, true
 	);
-
 
 
 	GetWorldTimerManager().SetTimer(CheckForNearbyEnemies, [this,EnemyWeakPtr]()

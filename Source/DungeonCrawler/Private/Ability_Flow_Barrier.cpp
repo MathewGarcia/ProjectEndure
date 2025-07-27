@@ -12,12 +12,12 @@
 void UAbility_Flow_Barrier::execute_Implementation()
 {
 	Super::execute_Implementation();
-
 	if (APlayerCharacterState* PCS = Cast<APlayerCharacterState>(GetOuter()))
 	{
 		if (APlayerCharacter* player = Cast<APlayerCharacter>(PCS->GetPawn()))
 		{
-			player->PlayAnimMontage(MontageToPlay, player->MontageSpeed);
+			if (MontageToPlay)
+				player->PlayAnimMontage(MontageToPlay, player->MontageSpeed);
 		}
 	}
 }
@@ -27,7 +27,8 @@ bool UAbility_Flow_Barrier::bShouldExecute_Implementation()
 	if (APlayerCharacterState* PCS = Cast<APlayerCharacterState>(GetOuter()))
 	{
 		if (APlayerCharacter* player = Cast<APlayerCharacter>(PCS->GetPawn())) {
-			return PCS->LearnedAbilities.Contains(this) && PCS->EquippedAbilities.Contains(this) && !GetWorld()->GetTimerManager().IsTimerActive(FCooldown) && player->CanPlayerDoAction(EResourceTypes::Stamina, staminaCost) && player->GetCurrentWeapon() && player->GetCurrentWeapon()->WeaponType == EWeaponType::Mage;
+			UWorld* World = GetWorld();
+			return PCS->LearnedAbilities.Contains(this) && PCS->EquippedAbilities.Contains(this) && World && !World->GetTimerManager().IsTimerActive(FCooldown) && player->CanPlayerDoAction(EResourceTypes::Stamina, staminaCost) && player->GetCurrentWeapon() && player->GetCurrentWeapon()->WeaponType == EWeaponType::Mage;
 		}
 	}
 	return false;
@@ -36,17 +37,18 @@ bool UAbility_Flow_Barrier::bShouldExecute_Implementation()
 void UAbility_Flow_Barrier::Logic()
 {
 	Super::Logic();
-
 	if (APlayerCharacterState* PCS = Cast<APlayerCharacterState>(GetOuter()))
 	{
 		if (APlayerCharacter* player = Cast<APlayerCharacter>(PCS->GetPawn()))
 		{
+			UWorld* World = player->GetWorld();
+			if (!World) return;
 			TArray<AActor*>actorsToIgnore;
 			TArray<AActor*> HitActors;
 			actorsToIgnore.Add(player);
 			TArray<TEnumAsByte<EObjectTypeQuery> > ObjectTypes;
 			ObjectTypes.Add(UEngineTypes::ConvertToObjectType(ECC_Pawn));
-			if(UKismetSystemLibrary::SphereOverlapActors(player->GetWorld(), player->GetActorLocation(), Radius, ObjectTypes,AEnemy::StaticClass(),actorsToIgnore,HitActors))
+			if(UKismetSystemLibrary::SphereOverlapActors(World, player->GetActorLocation(), Radius, ObjectTypes,AEnemy::StaticClass(),actorsToIgnore,HitActors))
 			{
 				for(AActor*HitActor : HitActors)
 				{
@@ -55,26 +57,27 @@ void UAbility_Flow_Barrier::Logic()
 						if(UCharacterMovementComponent*MovementComponent = Enemy->GetCharacterMovement())
 						{
 							MovementComponent->MaxWalkSpeed /= 4;
-
 						}
-
 						if(Enemy->GetMesh())
 						{
 							Enemy->GetMesh()->GlobalAnimRateScale = 0.5;
 						}
 						TWeakObjectPtr<AEnemy> SafeEnemy = Enemy;
 						FTimerHandle FLocalDurationTimer;
-						Enemy->GetWorldTimerManager().SetTimer(FLocalDurationTimer, [SafeEnemy]
+						UWorld* EnemyWorld = Enemy->GetWorld();
+						if (!EnemyWorld) continue;
+						if (EnemyWorld->GetTimerManager().IsTimerActive(FLocalDurationTimer)) {
+							EnemyWorld->GetTimerManager().ClearTimer(FLocalDurationTimer);
+						}
+						EnemyWorld->GetTimerManager().SetTimer(FLocalDurationTimer, [SafeEnemy]
 						{
-								if (!SafeEnemy.IsValid()) return;
+							if (!SafeEnemy.IsValid()) return;
 							if(AEnemy*LocalEnemy = SafeEnemy.Get())
 							{
 								if (UCharacterMovementComponent* MovementComponent = LocalEnemy->GetCharacterMovement())
 								{
 									MovementComponent->MaxWalkSpeed = 600.f;
-
 								}
-
 								if (LocalEnemy->GetMesh())
 								{
 									LocalEnemy->GetMesh()->GlobalAnimRateScale = 1.f;
@@ -82,9 +85,11 @@ void UAbility_Flow_Barrier::Logic()
 							}
 						}, Duration, false);
 					}
-
 				}
-				GetWorld()->GetTimerManager().SetTimer(FCooldown, Cooldown, false);
+				if (World->GetTimerManager().IsTimerActive(FCooldown)) {
+					World->GetTimerManager().ClearTimer(FCooldown);
+				}
+				World->GetTimerManager().SetTimer(FCooldown, Cooldown, false);
 			}
 		}
 	}

@@ -11,38 +11,38 @@
 void UAbility_Warborn_Momentum::execute_Implementation()
 {
 	Super::execute_Implementation();
-
 	if(APlayerCharacterState*PCS = Cast<APlayerCharacterState>(GetOuter()))
 	{
 		if(APlayerCharacter*player = Cast<APlayerCharacter>(PCS->GetPawn()))
 		{
 			player->SetPlayerState(PlayerStates::NONE);
 			TWeakObjectPtr<APlayerCharacterState> safePlayerState = PCS;
+			if (FOnDamageDelegateHandle.IsValid()) {
+				player->OnEnemyDamageTaken.Remove(FOnDamageDelegateHandle);
+			}
 			FOnDamageDelegateHandle = player->OnEnemyDamageTaken.AddLambda([this,safePlayerState](AEnemy*EnemyHit,float& Damage)
 			{
-					if (!EnemyHit || !safePlayerState.IsValid()) return;
-					if (APlayerCharacterState* localPCS = Cast<APlayerCharacterState>(safePlayerState.Get())) {
-						UE_LOG(LogTemp,Warning,TEXT("Enemy HIT LAMBDA"))
-						if (EnemyHit->Health <= 0.f)
+				if (!EnemyHit || !safePlayerState.IsValid()) return;
+				if (APlayerCharacterState* localPCS = Cast<APlayerCharacterState>(safePlayerState.Get())) {
+					if (localPCS->GetTotalStamina() <= 0.f) return;
+					if (EnemyHit->Health <= 0.f)
+					{
+						localPCS->playerStats.currentStamina += localPCS->GetTotalStamina() * AmtPercent;
+						localPCS->playerStats.currentStamina = FMath::Clamp(localPCS->playerStats.currentStamina, 0.f, localPCS->GetTotalStamina());
+						if (APlayerCharacter*LocalPlayerCharacter= Cast<APlayerCharacter>(localPCS->GetPawn()))
 						{
-							localPCS->playerStats.currentStamina += localPCS->GetTotalStamina() * AmtPercent;
-							localPCS->playerStats.currentStamina = FMath::Clamp(localPCS->playerStats.currentStamina, 0.f, localPCS->GetTotalStamina());
-							if (APlayerCharacter*LocalPlayerCharacter= Cast<APlayerCharacter>(localPCS->GetPawn()))
-							{
-								if (APlayerController* PC = Cast<APlayerController>(LocalPlayerCharacter->GetController())) {
-									if (AInGamePlayerHUD* playerHUD = Cast<AInGamePlayerHUD>(PC->GetHUD()))
+							if (APlayerController* PC = Cast<APlayerController>(LocalPlayerCharacter->GetController())) {
+								if (AInGamePlayerHUD* playerHUD = Cast<AInGamePlayerHUD>(PC->GetHUD()))
+								{
+									if (playerHUD->GetMainUIWidget())
 									{
-										if (playerHUD->GetMainUIWidget())
-										{
-											playerHUD->GetMainUIWidget()->UpdateProgressBar("Stamina", localPCS->playerStats.currentStamina / localPCS->GetTotalStamina());
-
-										}
+										playerHUD->GetMainUIWidget()->UpdateProgressBar("Stamina", localPCS->playerStats.currentStamina / localPCS->GetTotalStamina());
 									}
 								}
 							}
 						}
 					}
-					
+				}
 			});
 		}
 	}
@@ -63,4 +63,5 @@ bool UAbility_Warborn_Momentum::bShouldExecute_Implementation()
 void UAbility_Warborn_Momentum::Logic()
 {
 	Super::Logic();
+	// No timers or logic needed here currently.
 }

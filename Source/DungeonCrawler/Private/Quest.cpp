@@ -2,8 +2,6 @@
 
 
 #include "Quest.h"
-
-#include "DungeonCrawlerGM.h"
 #include "Item.h"
 #include "MainGameInstance.h"
 #include "NPC.h"
@@ -82,6 +80,8 @@ void UQuest::SerializeQuest(FQuest_SaveData& Out)
 
 void UQuest::DeserializeQuest(FQuest_SaveData* In)
 {
+
+	if (!In) return;
 
 	if (UMainGameInstance* MGI = Cast<UMainGameInstance>(GetWorld()->GetGameInstance()))
 	{

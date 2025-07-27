@@ -9,50 +9,51 @@
 
 //THIS IS REALLY JUST A BUFF STAT... Name should be changed.
 void UBuff_Health::Execute() {
+    UWorld* World = GetWorld();
+    if (!World) return;
+    if (UMainGameInstance* MGI = Cast<UMainGameInstance>(World->GetGameInstance())) {
+        if (APlayerCharacter* player = MGI->localPlayer) {
+            if (APlayerCharacterState*PCS = player->GetPlayerCharacterState()) {
 
-	if (UMainGameInstance* MGI = Cast<UMainGameInstance>(GetWorld()->GetGameInstance())) {
-		if (APlayerCharacter* player = MGI->localPlayer) {
-			if (APlayerCharacterState*PCS = player->GetPlayerCharacterState()) {
+                switch (StatType) {
+                case EPlayerStatType::Health:
+                    UE_LOG(LogTemp, Warning, TEXT("Health Before Increased %f"), PCS->playerStats.totalHealth);
 
-				switch (StatType) {
-				case EPlayerStatType::Health:
-					UE_LOG(LogTemp, Warning, TEXT("Health Before Increased %f"), PCS->playerStats.totalHealth);
+                    PCS->playerStats.totalHealth += PCS->playerStats.totalHealth * 0.1;
+                    UE_LOG(LogTemp, Warning, TEXT("Health increased %f"), PCS->playerStats.totalHealth);
+                    break;
+                case EPlayerStatType::Stamina:
+                    PCS->playerStats.totalStamina += PCS->playerStats.totalStamina * 0.1;
+                    UE_LOG(LogTemp, Warning, TEXT("Stamina increased"));
 
-					PCS->playerStats.totalHealth += PCS->playerStats.totalHealth * 0.1;
-					UE_LOG(LogTemp, Warning, TEXT("Health increased %f"), PCS->playerStats.totalHealth);
-					break;
-				case EPlayerStatType::Stamina:
-					PCS->playerStats.totalStamina += PCS->playerStats.totalStamina * 0.1;
-					UE_LOG(LogTemp, Warning, TEXT("Stamina increased"));
+                    break;
 
-					break;
+                case EPlayerStatType::Intellect:
+                    PCS->playerStats.totalIntellect += PCS->playerStats.totalIntellect * 0.1;
+                    UE_LOG(LogTemp, Warning, TEXT("Intellect increased"));
 
-				case EPlayerStatType::Intellect:
-					PCS->playerStats.totalIntellect += PCS->playerStats.totalIntellect * 0.1;
-					UE_LOG(LogTemp, Warning, TEXT("Intellect increased"));
+                    break;
 
-					break;
+                case EPlayerStatType::Strength:
+                    PCS->playerStats.totalStrength += PCS->playerStats.totalStrength * 0.1;
+                    UE_LOG(LogTemp, Warning, TEXT("Strength increased"));
 
-				case EPlayerStatType::Strength:
-					PCS->playerStats.totalStrength += PCS->playerStats.totalStrength * 0.1;
-					UE_LOG(LogTemp, Warning, TEXT("Strength increased"));
+                    break;
 
-					break;
+                case EPlayerStatType::Life:
+                    PCS->UpdateLives(1);
+                    UE_LOG(LogTemp, Warning, TEXT("Increased Health by 1!"));
 
-				case EPlayerStatType::Life:
-					PCS->UpdateLives(1);
-					UE_LOG(LogTemp, Warning, TEXT("Increased Health by 1!"));
+                    break;
+                default:
+                    PCS->playerStats.totalHealth += PCS->playerStats.totalHealth * 0.1;
+                    UE_LOG(LogTemp, Warning, TEXT("Health increased"));
 
-					break;
-				default:
-					PCS->playerStats.totalHealth += PCS->playerStats.totalHealth * 0.1;
-					UE_LOG(LogTemp, Warning, TEXT("Health increased"));
+                    break;
 
-					break;
-
-				}
-			}
-		}
-	}
+                }
+            }
+        }
+    }
 
 }

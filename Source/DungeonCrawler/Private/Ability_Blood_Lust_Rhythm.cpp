@@ -12,8 +12,6 @@
 void UAbility_Blood_Lust_Rhythm::execute_Implementation()
 {
 	Super::execute_Implementation();
-
-
 	if (APlayerCharacterState* PCS = Cast<APlayerCharacterState>(GetOuter()))
 	{
 		if (APlayerCharacter* player = Cast<APlayerCharacter>(PCS->GetPawn()))
@@ -29,23 +27,26 @@ void UAbility_Blood_Lust_Rhythm::execute_Implementation()
 						if (PredictedHealth <= 0.f)
 						{
 							++CurrentAmtKills;
-						
+
 							if(CurrentAmtKills >= KillsNeeded)
 							{
 								PlayWidget(localPlayer);
 								PlayNiagaraSystem(localPlayer);
-								localPlayer->MontageSpeed = FMath::Max(1.f,localPlayer->MontageSpeed * AttackSpeedModifierPercent);
-								PlaySound(localPlayer->GetWorld());
-								localPlayer->GetWorld()->GetTimerManager().SetTimer(FDurationTimer, [this,safePlayer]()
-								{
+								if (localPlayer->MontageSpeed > 0.f) {
+									localPlayer->MontageSpeed = FMath::Max(1.f,localPlayer->MontageSpeed * AttackSpeedModifierPercent);
+								}
+								UWorld* World = localPlayer->GetWorld();
+								if (World) {
+									PlaySound(World);
+									World->GetTimerManager().SetTimer(FDurationTimer, [this,safePlayer]()
+									{
 										if (APlayerCharacter* localPlayer = Cast<APlayerCharacter>(safePlayer.Get())) {
 											localPlayer->MontageSpeed = 1.f;
 											CurrentAmtKills = 0;
 										}
-								}, Duration, false);
+									}, Duration, false);
+								}
 							}
-					
-							
 						}
 					}
 
@@ -72,29 +73,23 @@ void UAbility_Blood_Lust_Rhythm::PlaySound(UWorld* playerWorld)
 
 void UAbility_Blood_Lust_Rhythm::PlayWidget(APlayerCharacter* Player)
 {
-	if (!Player || !Player->GetWorld()) return;
-
-	if(Player->CurrentLivesWidget)
+	if (!Player || !Player->GetWorld() || !Player->CurrentLivesWidget || !WidgetToShow) return;
+	Player->CurrentLivesWidget->SetWidgetClass(WidgetToShow);
+	Player->CurrentLivesWidget->SetVisibility(true);
+	FTimerHandle LocalTimer;
+	UWorld* World = Player->GetWorld();
+	if (!World) return;
+	World->GetTimerManager().SetTimer(LocalTimer, [Player]
 	{
-		Player->CurrentLivesWidget->SetWidgetClass(WidgetToShow);
-		Player->CurrentLivesWidget->SetVisibility(true);
-		FTimerHandle LocalTimer;
-		Player->GetWorld()->GetTimerManager().SetTimer(LocalTimer, [Player]
-		{
-				Player->ResetCurrentLivesWidget();
-				Player->CurrentLivesWidget->SetVisibility(false);
-
-		}, 1.f, false);
-	}
-
+		if (Player && Player->CurrentLivesWidget) {
+			Player->ResetCurrentLivesWidget();
+			Player->CurrentLivesWidget->SetVisibility(false);
+		}
+	}, 1.f, false);
 }
 
 void UAbility_Blood_Lust_Rhythm::PlayNiagaraSystem(APlayerCharacter* player)
 {
-	if (!player) return;
-
-	if (NiagaraSystem)
-	{
-		UNiagaraFunctionLibrary::SpawnSystemAttached(NiagaraSystem, player->GetMesh(), "root", FVector::ZeroVector, FRotator::ZeroRotator, EAttachLocation::Type::SnapToTargetIncludingScale, true);
-	}
+	if (!player || !NiagaraSystem || !player->GetMesh()) return;
+	UNiagaraFunctionLibrary::SpawnSystemAttached(NiagaraSystem, player->GetMesh(), "root", FVector::ZeroVector, FRotator::ZeroRotator, EAttachLocation::Type::SnapToTargetIncludingScale, true);
 }

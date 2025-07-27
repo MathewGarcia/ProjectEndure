@@ -35,7 +35,9 @@ void APlayerCharacterController::ShowHideCursor(bool NewVal)
 
 void APlayerCharacterController::PlayCameraShake()
 {
-	PlayerCameraManager->StartCameraShake(CameraShake);
+	if (PlayerCameraManager && CameraShake) {
+		PlayerCameraManager->StartCameraShake(CameraShake);
+	}
 }
 
 void APlayerCharacterController::Destroyed()
@@ -44,6 +46,8 @@ void APlayerCharacterController::Destroyed()
 
 		if(APlayerCharacterState*PCS = GetPlayerState<APlayerCharacterState>())
 		{
-			PCS->playerStats.EndAllTimers();
+			if (&PCS->playerStats) {
+				PCS->playerStats.EndAllTimers();
+			}
 		}
 }

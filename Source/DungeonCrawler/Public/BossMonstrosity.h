@@ -28,7 +28,7 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = "Radius")
 	float Radius = 50.f;
-
+		
 	UPROPERTY()
 	TArray<AEnemy*> ActiveSludges;
 

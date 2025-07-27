@@ -74,8 +74,10 @@ AEnemy::AEnemy()
 	Collisions.Add("LeftHandHitBox", LeftHandHitBox);
 	Collisions.Add("CenterHitBox", CenterHitBox);
 
-	GetMesh()->SetGenerateOverlapEvents(true);
-	GetCharacterMovement()->bEnablePhysicsInteraction = false;
+	if (GetMesh())
+		GetMesh()->SetGenerateOverlapEvents(true);
+	if (GetCharacterMovement())
+		GetCharacterMovement()->bEnablePhysicsInteraction = false;
 
 	NavigationInvoker = CreateDefaultSubobject<UNavigationInvokerComponent>(TEXT("Navigation Invoker"));
 
@@ -85,46 +87,38 @@ AEnemy::AEnemy()
 
 void AEnemy::Attack()
 {
-	int pos = CanUseAblity(EAbilityType::Offensive);
-
-	if(pos > -1)
-	{
-		UseAbility(EAbilityType::Offensive, pos);
-		GetWorld()->GetTimerManager().SetTimer(FAttackResetFallback, this, &AEnemy::ResetEnemyState, 2.f, false);
-
-		return;
-	}
-
-	if (CanUseSpecial())
-	{
-		UseSpecial();
-		GetWorld()->GetTimerManager().SetTimer(FAttackResetFallback, this, &AEnemy::ResetEnemyState, 2.f, false);
-
-		return;
-	}
-
-	if (CanAttack() && Stamina >= AttackStaminaReduction) {
-
-		EnemyState = EEnemyStates::attack;
-		FString AttackName = "Attack" + FString::FromInt(AttackCount + 1);
-
-		PlayAnimMontage(AttackMontage, 1, FName(AttackName));
-		
-		Stamina -= AttackStaminaReduction;
-		Stamina = FMath::Clamp(Stamina, 0.0f, MaxStamina);
-		AttackCount = (AttackCount + 1) % AttackMontage->GetNumSections();
-
-		if (AttackCount == AttackMontage->GetNumSections() - 1) {
-			if (AAIEnemy* AIEnemyController = Cast<AAIEnemy>(GetController()))
-			{
-				if (AIEnemyController->features.IsValidIndex(10))
-				{
-					AIEnemyController->features[10] = 1.f;
-				}
-			}
-		}
-	}
-	GetWorld()->GetTimerManager().SetTimer(FAttackResetFallback, this, &AEnemy::ResetEnemyState,2.f,false);
+    int pos = CanUseAblity(EAbilityType::Offensive);
+    if(pos > -1)
+    {
+        UseAbility(EAbilityType::Offensive, pos);
+        GetWorld()->GetTimerManager().SetTimer(FAttackResetFallback, this, &AEnemy::ResetEnemyState, 2.f, false);
+        return;
+    }
+    if (CanUseSpecial())
+    {
+        UseSpecial();
+        GetWorld()->GetTimerManager().SetTimer(FAttackResetFallback, this, &AEnemy::ResetEnemyState, 2.f, false);
+        return;
+    }
+    if (CanAttack() && Stamina >= AttackStaminaReduction && AttackMontage)
+    {
+        EnemyState = EEnemyStates::attack;
+        FString AttackName = "Attack" + FString::FromInt(AttackCount + 1);
+        PlayAnimMontage(AttackMontage, 1, FName(AttackName));
+        Stamina -= AttackStaminaReduction;
+        Stamina = FMath::Clamp(Stamina, 0.0f, MaxStamina);
+        AttackCount = (AttackCount + 1) % AttackMontage->GetNumSections();
+        if (AttackCount == AttackMontage->GetNumSections() - 1) {
+            if (AAIEnemy* AIEnemyController = Cast<AAIEnemy>(GetController()))
+            {
+                if (AIEnemyController->features.IsValidIndex(10))
+                {
+                    AIEnemyController->features[10] = 1.f;
+                }
+            }
+        }
+    }
+    GetWorld()->GetTimerManager().SetTimer(FAttackResetFallback, this, &AEnemy::ResetEnemyState,2.f,false);
 }
 
 void AEnemy::UseSpecificAttack(UAnimMontage* MontageToUse, FName SectionToPlay)
@@ -137,7 +131,9 @@ void AEnemy::UseSpecificAttack(UAnimMontage* MontageToUse, FName SectionToPlay)
 
 UPrimitiveComponent* AEnemy::GetCollisionByName(FName Name)
 {
-	return Collisions[Name];
+    if (Collisions.Contains(Name))
+        return Collisions[Name];
+    return nullptr;
 }
 
 void AEnemy::OnHitBoxBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
@@ -272,37 +268,37 @@ void AEnemy::StartRechargeStamina()
 void AEnemy::BuffFriendlies()
 {
 	UE_LOG(LogTemp, Warning, TEXT("buff"));
-
-	if (EnemyParameters.BuffObject) {
-		PlayAnimMontage(MiscMontages, 1, "Buff");
-
-		for (TWeakObjectPtr<AEnemy> WeakEnemy : RecentEnemies)
-		{
-			if (!WeakEnemy.IsValid()) continue;
-
-			if (AEnemy* Enemy = WeakEnemy.Get()) {
-				UImpBuff* buff = NewObject<UImpBuff>(Enemy, EnemyParameters.BuffObject);
-				Enemy->Buffs.Add(buff);
-				buff->BeginBuff(Enemy);
-
-				if (AAIEnemy* AIEnemyController = Cast<AAIEnemy>(Enemy->GetController()))
-				{
-					AIEnemyController->ChangeAIState(AIEnemyController->AttackState.Get());
-				}
-			}
-		}
-	}
+    if (EnemyParameters.BuffObject && MiscMontages)
+    {
+        PlayAnimMontage(MiscMontages, 1, "Buff");
+        for (TWeakObjectPtr<AEnemy> WeakEnemy : RecentEnemies)
+        {
+            if (!WeakEnemy.IsValid()) continue;
+            if (AEnemy* Enemy = WeakEnemy.Get()) {
+                UImpBuff* buff = NewObject<UImpBuff>(Enemy, EnemyParameters.BuffObject);
+                if (buff) {
+                    Enemy->Buffs.Add(buff);
+                    buff->BeginBuff(Enemy);
+                }
+                if (AAIEnemy* AIEnemyController = Cast<AAIEnemy>(Enemy->GetController()))
+                {
+                    AIEnemyController->ChangeAIState(AIEnemyController->AttackState.Get());
+                }
+            }
+        }
+    }
 }
 
 void AEnemy::UseSpecial()
 {
-	EnemyState = EEnemyStates::attack;
-	int SpecialNumber = FMath::RandRange(1, 2);
-	FString SpecialName = "Special" + FString::FromInt(SpecialNumber);
-	UseSpecificAttack(MiscMontages, FName(SpecialName));
-	Stamina -= SpecialStaminaReduction;
-	Stamina = FMath::Clamp(Stamina, 0.0f, MaxStamina);
-	GetWorld()->GetTimerManager().SetTimer(FSpecialCooldown,SpecialTimer,false);
+    if (!MiscMontages) return;
+    EnemyState = EEnemyStates::attack;
+    int SpecialNumber = FMath::RandRange(1, 2);
+    FString SpecialName = "Special" + FString::FromInt(SpecialNumber);
+    UseSpecificAttack(MiscMontages, FName(SpecialName));
+    Stamina -= SpecialStaminaReduction;
+    Stamina = FMath::Clamp(Stamina, 0.0f, MaxStamina);
+    GetWorld()->GetTimerManager().SetTimer(FSpecialCooldown,SpecialTimer,false);
 }
 
 bool AEnemy::CanUseSpecial() const
@@ -421,17 +417,18 @@ void AEnemy::AbilityLogic(EAbilityType AbilityType, int pos)
 
 void AEnemy::DetermineHitAnimation(const float& poise)
 {
-	auto PlayIfSectionExists = [&](const FName& SectionName)
-		{
-			if (MiscMontages && MiscMontages->GetSectionIndex(SectionName) != INDEX_NONE)
-			{
-				PlayAnimMontage(MiscMontages, 1.0f, SectionName);
-			}
-			else
-			{
-				PlayAnimMontage(MiscMontages, 1.0f, FName("Hit"));
-			}
-		};
+    if (!MiscMontages) return;
+    auto PlayIfSectionExists = [&](const FName& SectionName)
+        {
+            if (MiscMontages && MiscMontages->GetSectionIndex(SectionName) != INDEX_NONE)
+            {
+                PlayAnimMontage(MiscMontages, 1.0f, SectionName);
+            }
+            else
+            {
+                PlayAnimMontage(MiscMontages, 1.0f, FName("Hit"));
+            }
+        };
 
 	if (poise < 0)
 	{
@@ -756,23 +753,28 @@ void AEnemy::HandlePlayerAttack(APlayerCharacter* player, float DamageAmount)
 		}
 		if (EnemyState == EEnemyStates::backstabbed)
 		{
-			FVector Location = player->GetActorForwardVector() * 5.f;
-			FVector RightLocation = GetActorRightVector() * 10.0f;
-
-			SetActorLocation(GetActorLocation() + Location + RightLocation, true);
-
+			// IMPROVED: Better positioning and locking
+			PositionForSpecialAttack(player, false);
 			PlayAnimMontage(MiscMontages, 1, "BackstabRecieved");
 
-			GetWorld()->GetTimerManager().SetTimer(FBackstabTimer, 1.5f, false);
+			// Set timer to prevent rapid backstabs
+			GetWorld()->GetTimerManager().SetTimer(FBackstabTimer, 2.0f, false); // Increased to 2 seconds
 
+			// Lock the enemy in place during backstab
+			SetActorEnableCollision(false); // Prevent physics interference
+			GetCharacterMovement()->SetMovementMode(MOVE_None); // Stop all movement
 
+			// Set timer to restore movement after animation
+			FTimerHandle RestoreMovementTimer;
+			GetWorld()->GetTimerManager().SetTimer(RestoreMovementTimer, [this]()
+				{
+					SetActorEnableCollision(true);
+					GetCharacterMovement()->SetMovementMode(MOVE_Walking);
+				}, 1.5f, false);
 		}
 		else if (EnemyState == EEnemyStates::parried)
 		{
-			FVector Location = player->GetActorForwardVector() * 5.f;
-			FVector RightLocation = GetActorRightVector() * 10.0f;
-
-			SetActorLocation(GetActorLocation() + Location + RightLocation, true);
+			PositionForSpecialAttack(player, true);
 
 			//play parried animation.
 			PlayAnimMontage(MiscMontages, 1, "ParryRecieved");
@@ -798,6 +800,37 @@ void AEnemy::HandleDebuffAttack(ADebuffActor* DebuffActor, float DamageAmount)
 	EnemyState = EEnemyStates::hit;
 	DetermineHitAnimation(EnemyParameters.currentPoise);
 }
+
+void AEnemy::PositionForSpecialAttack(APlayerCharacter* player, bool bFacePlayer = true)
+{
+	if (!player) return;
+
+	FVector PlayerLocation = player->GetActorLocation();
+	FVector PlayerForward = player->GetActorForwardVector();
+
+	// Position enemy slightly in front of player
+	FVector IdealEnemyLocation = PlayerLocation + (PlayerForward * 80.0f);
+
+	// Set enemy location
+	SetActorLocation(IdealEnemyLocation, true);
+
+	// Determine rotation based on attack type
+	FRotator IdealRotation;
+	if (bFacePlayer)
+	{
+		// For parries: enemy faces player
+		FVector EnemyToPlayer = (PlayerLocation - IdealEnemyLocation).GetSafeNormal();
+		IdealRotation = EnemyToPlayer.Rotation();
+	}
+	else
+	{
+		// For backstabs: enemy faces away from player (same direction as player)
+		IdealRotation = PlayerForward.Rotation();
+	}
+
+	SetActorRotation(IdealRotation);
+}
+
 
 TSubclassOf<AItem> AEnemy::ItemToDrop()
 {
@@ -911,44 +944,42 @@ void AEnemy::SpawnBossBuff()
 
 void AEnemy::HideBossHealthBarUI(APlayerCharacterState* pcs)
 {
-	if (UMainGameInstance* MainGameInstance = Cast<UMainGameInstance>(GetWorld()->GetGameInstance()))
-	{
-		if (!MainGameInstance->localPlayer) return;
-
-		if (APlayerController* PC = Cast<APlayerController>(MainGameInstance->localPlayer->GetController()))
-		{
-			if (AInGamePlayerHUD* InGamePlayerHUD = Cast<AInGamePlayerHUD>(PC->GetHUD()))
-			{
-				if (EnemyParameters.bIsBoss) {
-					if (UMainPlayerWidget* MainPlayerHUDWidget = InGamePlayerHUD->GetMainUIWidget())
-					{
-						MainPlayerHUDWidget->BossInfo->SetVisibility(ESlateVisibility::Hidden);
-					}
-				}
-
-			}
-		}
-	}
+    if (!pcs) return;
+    if (UMainGameInstance* MainGameInstance = Cast<UMainGameInstance>(GetWorld()->GetGameInstance()))
+    {
+        if (!MainGameInstance->localPlayer) return;
+        if (APlayerController* PC = Cast<APlayerController>(MainGameInstance->localPlayer->GetController()))
+        {
+            if (AInGamePlayerHUD* InGamePlayerHUD = Cast<AInGamePlayerHUD>(PC->GetHUD()))
+            {
+                if (EnemyParameters.bIsBoss) {
+                    if (UMainPlayerWidget* MainPlayerHUDWidget = InGamePlayerHUD->GetMainUIWidget())
+                    {
+                        if (MainPlayerHUDWidget->BossInfo)
+                            MainPlayerHUDWidget->BossInfo->SetVisibility(ESlateVisibility::Hidden);
+                    }
+                }
+            }
+        }
+    }
 }
 
 void AEnemy::UpdateBossHealthUI()
 {
-	if (UMainGameInstance* MainGameInstance = Cast<UMainGameInstance>(GetWorld()->GetGameInstance()))
-	{
-		//might break an edge case??
-		if (!MainGameInstance->localPlayer) return;
-
-		if (APlayerController* PC = Cast<APlayerController>(MainGameInstance->localPlayer->GetController()))
-		{
-			if (AInGamePlayerHUD* InGamePlayerHUD = Cast<AInGamePlayerHUD>(PC->GetHUD()))
-			{
-				if (UMainPlayerWidget* MainPlayerHUDWidget = InGamePlayerHUD->GetMainUIWidget())
-				{
-					MainPlayerHUDWidget->UpdateProgressBar("BossHealth", Health / MaxHealth);
-				}
-			}
-		}
-	}
+    if (UMainGameInstance* MainGameInstance = Cast<UMainGameInstance>(GetWorld()->GetGameInstance()))
+    {
+        if (!MainGameInstance->localPlayer) return;
+        if (APlayerController* PC = Cast<APlayerController>(MainGameInstance->localPlayer->GetController()))
+        {
+            if (AInGamePlayerHUD* InGamePlayerHUD = Cast<AInGamePlayerHUD>(PC->GetHUD()))
+            {
+                if (UMainPlayerWidget* MainPlayerHUDWidget = InGamePlayerHUD->GetMainUIWidget())
+                {
+                    MainPlayerHUDWidget->UpdateProgressBar("BossHealth", MaxHealth > 0 ? Health / MaxHealth : 0);
+                }
+            }
+        }
+    }
 }
 
 void AEnemy::ActivateBossTeleporter()
@@ -1187,21 +1218,18 @@ void AEnemy::Tick(float DeltaTime)
 	{
 		ResetEnemy();
 	}
-
-
-	UPrimitiveComponent* Base = GetCharacterMovement()->CurrentFloor.HitResult.Component.Get();
-	if (Base && Base->GetBodyInstance())
-	{
-		UPhysicalMaterial* PhysMat = Base->GetBodyInstance()->GetSimplePhysicalMaterial();
-
-		if (PhysMat)
-		{
-
-			EPhysicalSurface SurfaceType = UPhysicalMaterial::DetermineSurfaceType(PhysMat);
-			MostRecentSurfaceType = SurfaceType;
-		}
-	}
-
+    if (GetCharacterMovement()) {
+        UPrimitiveComponent* Base = GetCharacterMovement()->CurrentFloor.HitResult.Component.Get();
+        if (Base && Base->GetBodyInstance())
+        {
+            UPhysicalMaterial* PhysMat = Base->GetBodyInstance()->GetSimplePhysicalMaterial();
+            if (PhysMat)
+            {
+                EPhysicalSurface SurfaceType = UPhysicalMaterial::DetermineSurfaceType(PhysMat);
+                MostRecentSurfaceType = SurfaceType;
+            }
+        }
+    }
 }
 
 // Called to bind functionality to input
@@ -1212,117 +1240,99 @@ void AEnemy::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 }
 
 float AEnemy::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator,
-	AActor* DamageCauser)
+    AActor* DamageCauser)
 {
+    if(AAIEnemy*AIEnemyController = Cast<AAIEnemy>(GetController()))
+    {
+        if(AIEnemyController->CurrentState == AIEnemyController->IdleState.Get())
+        {
+            AIEnemyController->ChangeAIState(AIEnemyController->AttackState.Get());
+        }
+    }
+    if (APlayerCharacter* player = Cast<APlayerCharacter>(DamageCauser)) {
+        HandlePlayerAttack(player, DamageAmount);
+    }
+    else if(ADebuffActor*DebuffActor = Cast<ADebuffActor>(DamageCauser))
+    {
+        HandleDebuffAttack(DebuffActor,DamageAmount);
+    }
+    else
+    {
+        Health -= DamageAmount;
+        Health = FMath::Clamp(Health, 0, MaxHealth);
+    }
+    if (UMainGameInstance* MGI = Cast<UMainGameInstance>(GetWorld()->GetGameInstance())) {
+        if (MGI->Hit.Num() > 0) {
+            USoundBase* Sound = MGI->Hit[FMath::RandRange(0, MGI->Hit.Num() - 1)];
+            if (Sound) {
+                UGameplayStatics::PlaySound2D(GetWorld(), Sound);
+            }
+        }
+    }
+    if(EnemyParameters.bIsBoss)
+    {
+        UpdateBossHealthUI();
+    }
+    if(Health <= 0)
+    {
+        if (!bDead) {
+            AEnemy::OnEnemyDeath.Broadcast(this);
+            InstancedOnEnemyDeath.Broadcast(this);
+            if (APlayerCharacter* player = Cast<APlayerCharacter>(DamageCauser))
+            {
+                if (APlayerCharacterState* pcs = Cast<APlayerCharacterState>(player->GetPlayerState()))
+                {
+                    SetActorEnableCollision(false);
+                    pcs->playerStats.UpdateEXP(EnemyParameters.Exp);
+                    StopDebuffs();
+                    if (EnemyParameters.bIsBoss) {
+                        HideBossHealthBarUI(pcs);
+                        SpawnBossBuff();
+                    }
+                    UpdatePlayerEXPUI(pcs);
+                    if(player->bIsTargetedEnemy(this))
+                    {
+                        player->ResetTargetedEnemy();
+                    }
+                    if (UAbility** FoundAbility = pcs->LearnedAbilities.FindByPredicate([](UAbility* Ability)
+                        {
+                            return Ability && Ability->IsA(UAbility_Blood_Frenzy::StaticClass());
+                        }))
+                    {
+                        if (UAbility_Blood_Frenzy* Blood_Frenzy = Cast<UAbility_Blood_Frenzy>(*FoundAbility)) {
+                            ++Blood_Frenzy->KillCount;
+                            if (Blood_Frenzy->bShouldExecute_Implementation())
+                            {
+                                Blood_Frenzy->execute_Implementation();
+                            }
+                        }
+                    }
+                }
+            }
+            if (GetMesh()) {
+                if (EnemyType != EEnemyType::skeleton) {
+                    if (DeathAnimation)
+                        GetMesh()->PlayAnimation(DeathAnimation, false);
+                }
+                else
+                {
+                    GetMesh()->SetSimulatePhysics(true);
+                }
+            }
+            if (AAIEnemy* AIEnemyController = Cast<AAIEnemy>(GetController()))
+            {
+                if (FMath::FRandRange(0.f, 1.f) >= DropChance) {
+                    DropItem(ItemToDrop());
+                }
+                if (AIEnemyController->DeadState) {
+                    AIEnemyController->ChangeAIState(AIEnemyController->DeadState.Get());
+                }
+            }
+            GetWorld()->GetTimerManager().ClearAllTimersForObject(this);
+            bDead = true;
+        }
+    }
 
-	if(AAIEnemy*AIEnemyController = Cast<AAIEnemy>(GetController()))
-	{
-		if(AIEnemyController->CurrentState == AIEnemyController->IdleState.Get())
-		{
-			AIEnemyController->ChangeAIState(AIEnemyController->AttackState.Get());
-		}
-	}
-
-
-	if (APlayerCharacter* player = Cast<APlayerCharacter>(DamageCauser)) {
-		HandlePlayerAttack(player, DamageAmount);
-	}
-	else if(ADebuffActor*DebuffActor = Cast<ADebuffActor>(DamageCauser))
-	{
-		HandleDebuffAttack(DebuffActor,DamageAmount);
-	}
-	else
-	{
-
-		Health -= DamageAmount;
-		Health = FMath::Clamp(Health, 0, MaxHealth);
-	}
-
-	if (UMainGameInstance* MGI = Cast<UMainGameInstance>(GetWorld()->GetGameInstance())) {
-		USoundBase* Sound = MGI->Hit[FMath::RandRange(0, MGI->Hit.Num() - 1)];
-		if (Sound) {
-			UGameplayStatics::PlaySound2D(GetWorld(), Sound);
-		}
-	}
-
-	if(EnemyParameters.bIsBoss)
-	{
-		UpdateBossHealthUI();
-	}
-
-	if(Health <= 0)
-	{
-		if (!bDead) {
-
-
-			AEnemy::OnEnemyDeath.Broadcast(this);
-			InstancedOnEnemyDeath.Broadcast(this);
-
-			if (APlayerCharacter* player = Cast<APlayerCharacter>(DamageCauser))
-			{
-				if (APlayerCharacterState* pcs = Cast<APlayerCharacterState>(player->GetPlayerState()))
-				{
-					SetActorEnableCollision(false);
-					pcs->playerStats.UpdateEXP(EnemyParameters.Exp);
-					StopDebuffs();
-
-					if (EnemyParameters.bIsBoss) {
-						HideBossHealthBarUI(pcs);
-						SpawnBossBuff();
-
-					}
-							
-					UpdatePlayerEXPUI(pcs);
-
-					if(player->bIsTargetedEnemy(this))
-					{
-						player->ResetTargetedEnemy();
-					}
-
-					//check for bloodfrenzy
-					if (UAbility** FoundAbility = pcs->LearnedAbilities.FindByPredicate([](UAbility* Ability)
-						{
-							return Ability && Ability->IsA(UAbility_Blood_Frenzy::StaticClass());
-						}))
-					{
-						if (UAbility_Blood_Frenzy* Blood_Frenzy = Cast<UAbility_Blood_Frenzy>(*FoundAbility)) {
-							++Blood_Frenzy->KillCount;
-							if (Blood_Frenzy->bShouldExecute_Implementation())
-							{
-								Blood_Frenzy->execute_Implementation();
-							}
-						}
-
-					}
-
-
-				}
-			}
-
-			if (EnemyType != EEnemyType::skeleton) {
-				GetMesh()->PlayAnimation(DeathAnimation, false);
-			}
-			else
-			{
-				GetMesh()->SetSimulatePhysics(true);
-			}
-
-			if (AAIEnemy* AIEnemyController = Cast<AAIEnemy>(GetController()))
-			{
-				if (FMath::FRandRange(0.f, 1.f) >= DropChance) {
-					DropItem(ItemToDrop());
-				}
-				if (AIEnemyController->DeadState) {
-					AIEnemyController->ChangeAIState(AIEnemyController->DeadState.Get());
-				}
-			}
-
-			GetWorld()->GetTimerManager().ClearAllTimersForObject(this);
-			bDead = true;
-		}
-
-	}
-
-	return Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+    return Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
 }
 

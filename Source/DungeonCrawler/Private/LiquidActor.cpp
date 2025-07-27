@@ -48,9 +48,10 @@ void ALiquidActor::OverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* 
 void ALiquidActor::BeginPlay()
 {
 	Super::BeginPlay();
-
-	BoxComponent->OnComponentBeginOverlap.AddDynamic(this, &ALiquidActor::OnHitBoxBeginOverlap);
-	BoxComponent->OnComponentEndOverlap.AddDynamic(this, &ALiquidActor::OverlapEnd);
+	if (BoxComponent) {
+		BoxComponent->OnComponentBeginOverlap.AddDynamic(this, &ALiquidActor::OnHitBoxBeginOverlap);
+		BoxComponent->OnComponentEndOverlap.AddDynamic(this, &ALiquidActor::OverlapEnd);
+	}
 }
 
 // Called every frame

@@ -17,21 +17,20 @@ UAbility_Intelligence_Penalty::UAbility_Intelligence_Penalty(): Amount(0)
 void UAbility_Intelligence_Penalty::execute_Implementation()
 {
 	Super::execute_Implementation();
-
-
+	UWorld* World = GetWorld();
+	if (!World) return;
 	TArray<AActor*> Enemies;
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AEnemy::StaticClass(), Enemies);
-
+	UGameplayStatics::GetAllActorsOfClass(World, AEnemy::StaticClass(), Enemies);
 	for (AActor* EnemyActor : Enemies)
 	{
 		if (AEnemy* Enemy = Cast<AEnemy>(EnemyActor))
 		{
 			for (int i = 0; i < Amount; ++i) {
+				// Defensive: ensure IntelligencePenalty is not zero or negative before applying penalty
 				Enemy->IntelligencePenalty -= Enemy->IntelligencePenalty * 0.03;
 			}
 		}
 	}
-
 }
 
 bool UAbility_Intelligence_Penalty::bShouldExecute_Implementation()
@@ -43,7 +42,6 @@ bool UAbility_Intelligence_Penalty::bShouldExecute_Implementation()
 			return PCS->LearnedAbilities.Contains(this);
 		}
 	}
-
 	return false;
 }
 
@@ -58,6 +56,7 @@ void UAbility_Intelligence_Penalty::SerializeObject(FAbilitySaveData& OutData)
 void UAbility_Intelligence_Penalty::DeserializeObject(const FAbilitySaveData& InData)
 {
 	Super::DeserializeObject(InData);
-
-	Amount = InData.AbilityMetaData["Amount"].IntVar;
+	if (InData.AbilityMetaData.Contains("Amount")) {
+		Amount = InData.AbilityMetaData["Amount"].IntVar;
+	}
 }

@@ -12,7 +12,6 @@ AEnvironmentalItem::AEnvironmentalItem()
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 
-
 	 Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Static Mesh Comp"));
 	 RootComponent = Mesh;
 }
@@ -31,7 +30,7 @@ void AEnvironmentalItem::ToggleEnvironmentalItem(bool bNewVal)
 		bIsEnabled = bNewVal;
 		SetActorHiddenInGame(!bNewVal);
 
-		if (bWasSimulatingPhysics)
+		if (bWasSimulatingPhysics && Mesh)
 		{
 			Mesh->SetSimulatePhysics(bNewVal);
 		}
@@ -45,12 +44,17 @@ void AEnvironmentalItem::DropItem()
 
 	if(ShouldDropItem <= 0.1)
 	{
-		int32 Random = FMath::RandRange(0, ItemToDropClass.Num() - 1);
-		if (ItemToDropClass.IsValidIndex(Random))
+		if (ItemToDropClass.Num() > 0)
 		{
-			FActorSpawnParameters params;
-			params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
-			GetWorld()->SpawnActor<AItem>(ItemToDropClass[Random], GetActorLocation(), GetActorRotation(), params);
+			int32 Random = FMath::RandRange(0, ItemToDropClass.Num() - 1);
+			if (ItemToDropClass.IsValidIndex(Random))
+			{
+				FActorSpawnParameters params;
+				params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+				if (GetWorld()) {
+					GetWorld()->SpawnActor<AItem>(ItemToDropClass[Random], GetActorLocation(), GetActorRotation(), params);
+				}
+			}
 		}
 	}
 
@@ -67,17 +71,20 @@ float AEnvironmentalItem::TakeDamage(float DamageAmount, FDamageEvent const& Dam
 	{
 		DropItem();
 
-		if (UMainGameInstance* MGI = Cast<UMainGameInstance>(GetWorld()->GetGameInstance()))
-		{
-			if (!MGI->EnvironmentalItemBreaks.IsEmpty())
+		UWorld* World = GetWorld();
+		if (World) {
+			if (UMainGameInstance* MGI = Cast<UMainGameInstance>(World->GetGameInstance()))
 			{
-				USoundBase* SoundToPlay = MGI->EnvironmentalItemBreaks[FMath::RandRange(0, MGI->EnvironmentalItemBreaks.Num() - 1)];
-
-				if (SoundToPlay)
+				if (!MGI->EnvironmentalItemBreaks.IsEmpty())
 				{
-					UGameplayStatics::PlaySoundAtLocation(GetWorld(), SoundToPlay, GetActorLocation());
-				}
+					USoundBase* SoundToPlay = MGI->EnvironmentalItemBreaks[FMath::RandRange(0, MGI->EnvironmentalItemBreaks.Num() - 1)];
 
+					if (SoundToPlay)
+					{
+						UGameplayStatics::PlaySoundAtLocation(World, SoundToPlay, GetActorLocation());
+					}
+
+				}
 			}
 		}
 
@@ -92,7 +99,11 @@ void AEnvironmentalItem::BeginPlay()
 {
 	Super::BeginPlay();
 
-	bWasSimulatingPhysics = Mesh->IsSimulatingPhysics();
+	if (Mesh) {
+		bWasSimulatingPhysics = Mesh->IsSimulatingPhysics();
+	} else {
+		bWasSimulatingPhysics = false;
+	}
 
 }
 

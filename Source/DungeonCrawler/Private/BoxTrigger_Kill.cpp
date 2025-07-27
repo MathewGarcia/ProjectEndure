@@ -10,12 +10,15 @@ void ABoxTrigger_Kill::BeginOverlap(UPrimitiveComponent* OverlappedComponent, AA
                                     UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	Super::BeginOverlap(OverlappedComponent, OtherActor, OtherComp, OtherBodyIndex, bFromSweep, SweepResult);
-
-	if(OtherActor)
-	{
-		if(APlayerCharacter*player = Cast<APlayerCharacter>(OtherActor))
-		{
-			player->TakeDamage(MAX_flt, FDamageEvent(), nullptr, nullptr);
-		}
-	}
+	
+    if(OtherActor)
+    {
+        if(APlayerCharacter* player = Cast<APlayerCharacter>(OtherActor))
+        {
+            // Defensive: ensure player is valid before applying damage
+            if (player) {
+                player->TakeDamage(MAX_flt, FDamageEvent(), nullptr, nullptr);
+            }
+        }
+    }
 }

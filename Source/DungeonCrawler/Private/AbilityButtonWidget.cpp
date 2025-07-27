@@ -19,70 +19,78 @@
 
 void UAbilityButtonWidget::UpdateProgressBar()
 {
-	if (!AssignedAbility) return;
+    if (!AssignedAbility || !AbilityCooldownPB) return;
 
-	float CurrentTime = AssignedAbility->Cooldown;
+    float CurrentTime = AssignedAbility->Cooldown;
 
-	TWeakObjectPtr<UAbilityButtonWidget> SafeButton = this;
+    TWeakObjectPtr<UAbilityButtonWidget> SafeButton = this;
 
-	GetWorld()->GetTimerManager().SetTimer(CDTimerHandle, [this,CurrentTime]() mutable
-	{
-		if(AbilityCooldownPB)
-		{
-			CurrentTime -= 1;
-			AbilityCooldownPB->SetPercent(( CurrentTime / AssignedAbility->Cooldown));
-			if(AbilityCooldownPB->GetPercent() <= 0.f)
-			{
-				GetWorld()->GetTimerManager().ClearTimer(CDTimerHandle);
-			}
-		}
-	}, 1.f,true);
+    UWorld* World = GetWorld();
+    if (!World) return;
+
+    if (World->GetTimerManager().IsTimerActive(CDTimerHandle)) {
+        World->GetTimerManager().ClearTimer(CDTimerHandle);
+    }
+
+    World->GetTimerManager().SetTimer(CDTimerHandle, [this, CurrentTime]() mutable
+    {
+        if (!AbilityCooldownPB || !AssignedAbility) return;
+        CurrentTime -= 1;
+        float percent = (AssignedAbility->Cooldown > 0.f) ? (CurrentTime / AssignedAbility->Cooldown) : 0.f;
+        AbilityCooldownPB->SetPercent(percent);
+        if (percent <= 0.f)
+        {
+            if (GetWorld())
+                GetWorld()->GetTimerManager().ClearTimer(CDTimerHandle);
+        }
+    }, 1.f, true);
 }
 
 void UAbilityButtonWidget::NativeOnListItemObjectSet(UObject* ListItemObject)
 {
-	IUserObjectListEntry::NativeOnListItemObjectSet(ListItemObject);
+    IUserObjectListEntry::NativeOnListItemObjectSet(ListItemObject);
 
-	if (APlayerCharacterState* PCS = Cast<APlayerCharacterState>(GetOwningPlayerState())) {
+    if (APlayerCharacterState* PCS = Cast<APlayerCharacterState>(GetOwningPlayerState())) {
 
-		if (UAbility* Ability = Cast<UAbility>(ListItemObject))
-		{
-			if (image)
-			{
-				image->SetBrushFromTexture(Ability->Image);
-			}
+        if (UAbility* Ability = Cast<UAbility>(ListItemObject))
+        {
+            if (image)
+            {
+                image->SetBrushFromTexture(Ability->Image);
+            }
 
-			if (AbilityName)
-			{
-				AbilityName->SetText(FText::FromString(Ability->AbilityName));
-			}
+            if (AbilityName)
+            {
+                AbilityName->SetText(FText::FromString(Ability->AbilityName));
+            }
 
-			slotNum = PCS->EquippedAbilities.IndexOfByKey(Ability);
+            slotNum = PCS->EquippedAbilities.IndexOfByKey(Ability);
 
-			if (AbilityHotkey)
-			{
-				FString AbilityString = "Ability" + FString::FromInt(slotNum+1);
-				AbilityString += "IA";
+            if (AbilityHotkey)
+            {
+                FString AbilityString = "Ability" + FString::FromInt(slotNum+1);
+                AbilityString += "IA";
 
-				//hard coded for now.
-				if (const auto* FoundInputMap = PCS->InputMap.Find(AbilityString))
-				{
-					FString KeyToPress = FoundInputMap->ToString();
-					AbilityHotkey->SetText(FText::FromString(KeyToPress));
-				}
-			}
+                //hard coded for now.
+                if (const auto* FoundInputMap = PCS->InputMap.Find(AbilityString))
+                {
+                    FString KeyToPress = FoundInputMap->ToString();
+                    AbilityHotkey->SetText(FText::FromString(KeyToPress));
+                }
+            }
 
-			if(AbilityCooldownPB)
-			{
-				Ability->OnAbilityUsed.AddDynamic(this, &UAbilityButtonWidget::UpdateProgressBar);
-			}
+            if(AbilityCooldownPB)
+            {
+                Ability->OnAbilityUsed.RemoveDynamic(this, &UAbilityButtonWidget::UpdateProgressBar);
+                Ability->OnAbilityUsed.AddDynamic(this, &UAbilityButtonWidget::UpdateProgressBar);
+            }
 
-			if (Ability->GetClass() != UEmptyAbility::StaticClass()) {
-				AssignedAbility = Ability;
-			}
+            if (Ability->GetClass() != UEmptyAbility::StaticClass()) {
+                AssignedAbility = Ability;
+            }
 
-		}
-	}
+        }
+    }
 }
 
 FReply UAbilityButtonWidget::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
@@ -104,17 +112,18 @@ void UAbilityButtonWidget::NativeOnDragDetected(const FGeometry& InGeometry, con
 {
 	Super::NativeOnDragDetected(InGeometry, InMouseEvent, OutOperation);
 
-	if (!AssignedAbility) return;
+	if (!AssignedAbility || !DragWidgetClass || !image || !AbilityName) return;
 
 	UE_LOG(LogTemp, Warning, TEXT("Drag Detected"));
 
 	UDragDropOperation* DragDropOperation = NewObject<UDragDropOperation>(this, UDragDropOperation::StaticClass());
 
-	if(DragWidgetClass)
-	{
-		UDragWidget* DragVisual = CreateWidget<UDragWidget>(GetWorld(), DragWidgetClass);
-		DragVisual->image->SetBrush(image->GetBrush());
-		DragVisual->AbilityName->SetText(AbilityName->GetText());
+	UDragWidget* DragVisual = CreateWidget<UDragWidget>(GetWorld(), DragWidgetClass);
+	if (DragVisual && image && AbilityName) {
+		if (DragVisual->image)
+			DragVisual->image->SetBrush(image->GetBrush());
+		if (DragVisual->AbilityName)
+			DragVisual->AbilityName->SetText(AbilityName->GetText());
 		DragDropOperation->DefaultDragVisual = DragVisual;
 	}
 	DragDropOperation->Payload = this;
@@ -127,21 +136,20 @@ bool UAbilityButtonWidget::NativeOnDrop(const FGeometry& InGeometry, const FDrag
 	
 	UE_LOG(LogTemp, Warning, TEXT("Drag dropped on %d"), slotNum);
 
-	UAbilityButtonWidget* DragSource = Cast<UAbilityButtonWidget>(InOperation->Payload);
+	UAbilityButtonWidget* DragSource = Cast<UAbilityButtonWidget>(InOperation ? InOperation->Payload : nullptr);
 
 	if (DragSource && DragSource != this) {
 
 		if (APlayerCharacterState* PCS = Cast<APlayerCharacterState>(GetOwningPlayerState())) {
 
-			UAbility* Temp = PCS->EquippedAbilities[slotNum];
-			PCS->EquippedAbilities[slotNum] = PCS->EquippedAbilities[DragSource->slotNum];
-			PCS->EquippedAbilities[DragSource->slotNum] = Temp;
+			if (PCS->EquippedAbilities.IsValidIndex(slotNum) && PCS->EquippedAbilities.IsValidIndex(DragSource->slotNum)) {
+				UAbility* Temp = PCS->EquippedAbilities[slotNum];
+				PCS->EquippedAbilities[slotNum] = PCS->EquippedAbilities[DragSource->slotNum];
+				PCS->EquippedAbilities[DragSource->slotNum] = Temp;
 
-			Reinitialize(PCS->EquippedAbilities[slotNum]);
-			DragSource->Reinitialize(PCS->EquippedAbilities[DragSource->slotNum]);
-
-
-
+				Reinitialize(PCS->EquippedAbilities[slotNum]);
+				DragSource->Reinitialize(PCS->EquippedAbilities[DragSource->slotNum]);
+			}
 		}
 	}
 	return Super::NativeOnDrop(InGeometry, InDragDropEvent, InOperation);
@@ -188,7 +196,10 @@ void UAbilityButtonWidget::NativeDestruct()
 {
 	Super::NativeDestruct();
 
-	GetWorld()->GetTimerManager().ClearTimer(CDTimerHandle);
+	UWorld* World = GetWorld();
+	if (World && World->GetTimerManager().IsTimerActive(CDTimerHandle)) {
+		World->GetTimerManager().ClearTimer(CDTimerHandle);
+	}
 }
 
 

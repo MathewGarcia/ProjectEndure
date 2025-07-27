@@ -1,6 +1,5 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "MainGameInstance.h"
 
 #include "DungeonCrawlerGM.h"
@@ -16,45 +15,41 @@
 void UMainGameInstance::SaveGameData()
 {
     UPlayerSaveGame* PlayerSaveGame = Cast<UPlayerSaveGame>(UGameplayStatics::CreateSaveGameObject(UPlayerSaveGame::StaticClass()));
-
     if (!PlayerSaveGame) return;
     bool bSaved = false;
     if(localPlayer)
     {
-	    if(APlayerCharacterState*PCS = localPlayer->GetPlayerCharacterState())
-	    {
+        if(APlayerCharacterState*PCS = localPlayer->GetPlayerCharacterState())
+        {
             PlayerSaveGame->playerStats = FGameStats(PCS->playerStats);
             PCS->SaveAbilities(PCS);
             PlayerSaveGame->LearnedAbilities = PCS->LearnedAbilitiesSaveData;
             PlayerSaveGame->Lives = PCS->GetCurrentLives();
             PlayerSaveGame->HealAbility = PCS->HealAbility;
-
             PlayerSaveGame->CurrentQuestSaveData.Empty();
-
             for(int i = 0; i < PCS->CurrentQuests.Num(); ++i)
             {
-	            if(UQuest*Quest = PCS->CurrentQuests[i])
-	            {
+                if(UQuest*Quest = PCS->CurrentQuests[i])
+                {
                     FQuest_SaveData QuestSaveData = FQuest_SaveData();
-
                     Quest->SerializeQuest(QuestSaveData);
-
                     PlayerSaveGame->CurrentQuestSaveData.Add(QuestSaveData);
-	            }
+                }
             }
-
-            if (ADungeonCrawlerGM* GM = Cast<ADungeonCrawlerGM>(GetWorld()->GetAuthGameMode())) {
-                PlayerSaveGame->Round = GM->GetRoundCount();
+            UWorld* World = GetWorld();
+            if (World) {
+                if (ADungeonCrawlerGM* GM = Cast<ADungeonCrawlerGM>(World->GetAuthGameMode())) {
+                    PlayerSaveGame->Round = GM->GetRoundCount();
+                }
             }
             for (UItemDataObject* Item : PCS->Inventory)
             {
+                if (!Item) continue;
                 if (UWeaponInstance* Weapon = Cast<UWeaponInstance>(Item))
                 {
-                    //going to need to have separate arrays... 1 for weapons, gear and regular items.
                     FWeaponInstanceSaveData WeaponToSave = FWeaponInstanceSaveData();
                     Weapon->SerializeWeapon(WeaponToSave);
                     PlayerSaveGame->SavedInventoryWeapons.Add(WeaponToSave);
-
                 }
                 else if (UGearItemInstance* Gear = Cast<UGearItemInstance>(Item))
                 {
@@ -65,7 +60,6 @@ void UMainGameInstance::SaveGameData()
                 else
                 {
                     FItemInstance Data = FItemInstance();
-
                     if (Item->ItemData) {
                         Data.ItemDataID = Item->ItemData->ItemName.ToString();
                         Data.Quantity = Item->Quantity;
@@ -73,54 +67,61 @@ void UMainGameInstance::SaveGameData()
                     }
                 }
             }
-			if(AWeapon*CurrentWeapon = localPlayer->GetCurrentWeapon())
-			{
-                if (CurrentWeapon->WeaponInstance) {
-                    CurrentWeapon->WeaponInstance->SerializeWeapon(PlayerSaveGame->SavedWeapon);
-                }
-
-
-                if(UGearItemInstance**ChestItem = PCS->PlayerGearInstances.Find(EGearType::Chest))
+            if(localPlayer)
+            {
+                if(AWeapon*CurrentWeapon = localPlayer->GetCurrentWeapon())
                 {
-                    FGearItemInstanceSaveData ChestItemInstanceSaveData;
-                    (*ChestItem)->SeralizeGearItem(ChestItemInstanceSaveData);
-                    PlayerSaveGame->SavedGear.Add(ChestItemInstanceSaveData);
+                    if (CurrentWeapon->WeaponInstance) {
+                        CurrentWeapon->WeaponInstance->SerializeWeapon(PlayerSaveGame->SavedWeapon);
+                    }
                 }
-                if (UGearItemInstance** LegItem = PCS->PlayerGearInstances.Find(EGearType::Legs))
+                if (PCS)
                 {
-                    FGearItemInstanceSaveData LegItemInstanceSaveData;
-                    (*LegItem)->SeralizeGearItem(LegItemInstanceSaveData);
-                    PlayerSaveGame->SavedGear.Add(LegItemInstanceSaveData);
+                    if (UGearItemInstance**ChestItem = PCS->PlayerGearInstances.Find(EGearType::Chest))
+                    {
+                        if (*ChestItem) {
+                            FGearItemInstanceSaveData ChestItemInstanceSaveData;
+                            (*ChestItem)->SeralizeGearItem(ChestItemInstanceSaveData);
+                            PlayerSaveGame->SavedGear.Add(ChestItemInstanceSaveData);
+                        }
+                    }
+                    if (UGearItemInstance** LegItem = PCS->PlayerGearInstances.Find(EGearType::Legs))
+                    {
+                        if (*LegItem) {
+                            FGearItemInstanceSaveData LegItemInstanceSaveData;
+                            (*LegItem)->SeralizeGearItem(LegItemInstanceSaveData);
+                            PlayerSaveGame->SavedGear.Add(LegItemInstanceSaveData);
+                        }
+                    }
+                    if (UGearItemInstance** HeadItem = PCS->PlayerGearInstances.Find(EGearType::Head))
+                    {
+                        if (*HeadItem) {
+                            FGearItemInstanceSaveData HeadItemInstanceSaveData;
+                            (*HeadItem)->SeralizeGearItem(HeadItemInstanceSaveData);
+                            PlayerSaveGame->SavedGear.Add(HeadItemInstanceSaveData);
+                        }
+                    }
+                    if (UGearItemInstance** LHandItem = PCS->PlayerGearInstances.Find(EGearType::LHand))
+                    {
+                        if (*LHandItem) {
+                            FGearItemInstanceSaveData LHandItemInstanceSaveData;
+                            (*LHandItem)->SeralizeGearItem(LHandItemInstanceSaveData);
+                            PlayerSaveGame->SavedGear.Add(LHandItemInstanceSaveData);
+                        }
+                    }
                 }
-                if (UGearItemInstance** HeadItem = PCS->PlayerGearInstances.Find(EGearType::Head))
-                {
-                    FGearItemInstanceSaveData HeadItemInstanceSaveData;
-                    (*HeadItem)->SeralizeGearItem(HeadItemInstanceSaveData);
-                    PlayerSaveGame->SavedGear.Add(HeadItemInstanceSaveData);
-                }
-                if (UGearItemInstance** LHandItem = PCS->PlayerGearInstances.Find(EGearType::LHand))
-                {
-                    FGearItemInstanceSaveData LHandItemInstanceSaveData;
-                    (*LHandItem)->SeralizeGearItem(LHandItemInstanceSaveData);
-                    PlayerSaveGame->SavedGear.Add(LHandItemInstanceSaveData);
-                }
-                
-			}
-	    }
-
-         bSaved = UGameplayStatics::SaveGameToSlot(PlayerSaveGame, "Test", 0);
+            }
+        }
+        bSaved = UGameplayStatics::SaveGameToSlot(PlayerSaveGame, "Test", 0);
     }
-
-	if(bSaved)
-	{
+    if(bSaved)
+    {
         UE_LOG(LogTemp, Error, TEXT("SAVED GAME"));
-	}
+    }
     else
     {
         UE_LOG(LogTemp, Error, TEXT("FAILED TO SAVE GAME"));
-
     }
-
 }
 
 void UMainGameInstance::LoadGameData()
@@ -137,9 +138,7 @@ void UMainGameInstance::LoadGameData()
         UE_LOG(LogTemp, Warning, TEXT("No save found, creating default"));
         SavedGame = Cast<UPlayerSaveGame>(UGameplayStatics::CreateSaveGameObject(UPlayerSaveGame::StaticClass()));
         bLoadingSucceeded = false;
-
     }
-
 }
 
 void UMainGameInstance::DeleteGameData()
@@ -153,27 +152,24 @@ void UMainGameInstance::DeleteGameData()
 void UMainGameInstance::UpdateInDungeon(bool bInDungeon)
 {
     UPlayerSaveGame* PlayerSaveGame = Cast<UPlayerSaveGame>(UGameplayStatics::LoadGameFromSlot("Test", 0));
-
     if(PlayerSaveGame)
     {
         PlayerSaveGame->bInDungeon = bInDungeon;
         UGameplayStatics::SaveGameToSlot(PlayerSaveGame, "Test", 0);
     }
-
 }
 
 void UMainGameInstance::PlayDodgeSound(AActor* Actor)
 {
-    if (!Actor) return;
-
-    UGameplayStatics::PlaySoundAtLocation(GetWorld(), DodgeSound, Actor->GetActorLocation(), Actor->GetActorRotation(), 1, 1, 0, Attenuation);
-
+    if (!Actor || !DodgeSound) return;
+    UWorld* World = GetWorld();
+    if (!World) return;
+    UGameplayStatics::PlaySoundAtLocation(World, DodgeSound, Actor->GetActorLocation(), Actor->GetActorRotation(), 1, 1, 0, Attenuation);
 }
 
 void UMainGameInstance::Init()
 {
     Super::Init();
-
     if (UWorld* World = GetWorld())
     {
         APlayerController* PlayerController = World->GetFirstPlayerController();

@@ -1,6 +1,5 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "BuffSelectionSlotWidget.h"
 
 #include "BuffDataAsset.h"
@@ -20,39 +19,45 @@ void UBuffSelectionSlotWidget::NativeOnListItemObjectSet(UObject* ListItemObject
 	if(UBuffDataAsset* BuffDataAsset = Cast<UBuffDataAsset>(ListItemObject))
 	{
 		BuffData = BuffDataAsset;
-		BuffName->SetText(BuffDataAsset->BuffName);
-		DisplayingImage->SetBrushFromTexture(BuffDataAsset->ImageToShow);
-		if (UMainGameInstance* MGI = Cast<UMainGameInstance>(GetWorld()->GetGameInstance()))
-		{
-			if (MGI->localPlayer)
+		if (BuffName) {
+			BuffName->SetText(BuffDataAsset->BuffName);
+		}
+		if (DisplayingImage && BuffDataAsset->ImageToShow) {
+			DisplayingImage->SetBrushFromTexture(BuffDataAsset->ImageToShow);
+		}
+		UWorld* World = GetWorld();
+		if (World) {
+			if (UMainGameInstance* MGI = Cast<UMainGameInstance>(World->GetGameInstance()))
 			{
-				if (APlayerController* PC = Cast<APlayerController>(MGI->localPlayer->GetController()))
+				if (MGI->localPlayer)
 				{
-					if (AInGamePlayerHUD* InGamePlayerHUD = Cast<AInGamePlayerHUD>(PC->GetHUD()))
+					if (APlayerController* PC = Cast<APlayerController>(MGI->localPlayer->GetController()))
 					{
-						OwningWidget = InGamePlayerHUD->BuffSelectionWidget;
-
-						for(UBuffDataAsset*Buff : OwningWidget->ChosenBuffs)
+						if (AInGamePlayerHUD* InGamePlayerHUD = Cast<AInGamePlayerHUD>(PC->GetHUD()))
 						{
-							if(Buff->BuffName.EqualTo(BuffData->BuffName))
-							{
-								ChoseDataAssetSafe = Buff;
-								break;
+							OwningWidget = InGamePlayerHUD->BuffSelectionWidget;
+							if (OwningWidget) {
+								for(UBuffDataAsset*Buff : OwningWidget->ChosenBuffs)
+								{
+									if(Buff && Buff->BuffName.EqualTo(BuffData->BuffName))
+									{
+										ChoseDataAssetSafe = Buff;
+										break;
+									}
+								}
+								RollDrop();
 							}
 						}
-						RollDrop();
-
 					}
 				}
 			}
-		}		
+		}
 	}
 }
 
 void UBuffSelectionSlotWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
-
 }
 
 void UBuffSelectionSlotWidget::ResetData()
@@ -63,8 +68,12 @@ void UBuffSelectionSlotWidget::ResetData()
 
 	if (BuffData)
 	{
-		BuffName->SetText(BuffData->BuffName);
-		DisplayingImage->SetBrushFromTexture(BuffData->ImageToShow);
+		if (BuffName) {
+			BuffName->SetText(BuffData->BuffName);
+		}
+		if (DisplayingImage && BuffData->ImageToShow) {
+			DisplayingImage->SetBrushFromTexture(BuffData->ImageToShow);
+		}
 	}
 }
 
@@ -72,38 +81,28 @@ void UBuffSelectionSlotWidget::RollDrop()
 {
 
 	if (OwningWidget) {
-
 		AllBuffs = OwningWidget->AllBuffs;
-		GetWorld()->GetTimerManager().SetTimer(FRollingTimer, [this]()
+		UWorld* World = GetWorld();
+		if (!World) return;
+		if (AllBuffs.Num() == 0) return;
+		World->GetTimerManager().SetTimer(FRollingTimer, [this]()
 			{
-
-				//keep selecting a random one.
+				if (AllBuffs.Num() == 0) return;
 				int RandomRolledNum = FMath::RandRange(0, AllBuffs.Num() - 1);
-
 				if (AllBuffs.IsValidIndex(RandomRolledNum)) {
 					SafeDataAsset = AllBuffs[RandomRolledNum];
 				}
-
 				ResetData();
-
-
 			}, 0.05, true);
-
-
-
-		GetWorld()->GetTimerManager().SetTimer(FStopTimer, [this]()
+		World->GetTimerManager().SetTimer(FStopTimer, [this]()
 			{
-
-				if (GetWorld()->GetTimerManager().IsTimerActive(FRollingTimer))
+				UWorld* World = GetWorld();
+				if (World && World->GetTimerManager().IsTimerActive(FRollingTimer))
 				{
-
 					SafeDataAsset = ChoseDataAssetSafe;
 					ResetData();
-
-					GetWorld()->GetTimerManager().ClearTimer(FRollingTimer);
-
+					World->GetTimerManager().ClearTimer(FRollingTimer);
 				}
-
 			}, 1.5f, false);
 	}
 }

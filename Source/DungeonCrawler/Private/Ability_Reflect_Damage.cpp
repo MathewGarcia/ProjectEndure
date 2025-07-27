@@ -12,7 +12,10 @@ void UAbility_Reflect_Damage::execute_Implementation()
 	Super::execute_Implementation();
 
 	float ReflectDamage = DamageTaken * Percent;
-	DamageCauser->TakeDamage(ReflectDamage, FDamageEvent(), nullptr, nullptr);
+	if (DamageCauser)
+	{
+		DamageCauser->TakeDamage(ReflectDamage, FDamageEvent(), nullptr, nullptr);
+	}
 }
 
 bool UAbility_Reflect_Damage::bShouldExecute_Implementation()

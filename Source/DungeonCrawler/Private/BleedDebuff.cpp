@@ -15,6 +15,8 @@ void UBleedDebuff::ExecuteDebuff_Implementation(AActor* Target, AActor* DamageCa
 {
 	Super::ExecuteDebuff_Implementation(Target,DamageCauser);
 
+    if (!Target) return;
+
 	if (APlayerCharacter* player = Cast<APlayerCharacter>(Target))
 	{
 
@@ -31,7 +33,7 @@ void UBleedDebuff::ExecuteDebuff_Implementation(AActor* Target, AActor* DamageCa
 		}
 		else
 		{
-			if (NiagaraSystem) {
+			if (NiagaraSystem && player->GetWorld()) {
 				UNiagaraComponent* NiagaraComponent = UNiagaraFunctionLibrary::SpawnSystemAtLocation(player->GetWorld(), NiagaraSystem, player->GetActorLocation());
 			}
 
@@ -51,7 +53,7 @@ void UBleedDebuff::ExecuteDebuff_Implementation(AActor* Target, AActor* DamageCa
 		}
 
 		enemy->CurrentDebuffs.Add(EElementTypes::Bleed, this);
-		if (NiagaraSystem) {
+		if (NiagaraSystem && enemy->GetWorld()) {
 		UNiagaraComponent* NiagaraComponent = UNiagaraFunctionLibrary::SpawnSystemAtLocation(enemy->GetWorld(), NiagaraSystem, enemy->GetActorLocation());
 		}
 

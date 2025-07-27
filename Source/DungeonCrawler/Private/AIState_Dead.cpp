@@ -17,31 +17,22 @@ void AIState_Dead::TickState(float DeltaTime)
 
 void AIState_Dead::OnEnterState()
 {
-	if (world) {
+	if (world && AIEnemyController) {
 		FTimerHandle destroyTimerHandle;
-
 		if (AEnemy* Enemy = Cast<AEnemy>(AIEnemyController->GetPawn()))
 		{
 			Enemy->GetWorldTimerManager().ClearAllTimersForObject(Enemy);
 			AIEnemyController->GetWorldTimerManager().ClearAllTimersForObject(AIEnemyController);
-
 			TWeakObjectPtr<AEnemy> safeEnemy = Enemy;
-			world->GetTimerManager().SetTimer(destroyTimerHandle, [this,safeEnemy]()
+			world->GetTimerManager().SetTimer(destroyTimerHandle, [this, safeEnemy]()
 				{
-				
-					if (!safeEnemy.IsValid()) return;
-
+					if (!safeEnemy.IsValid() || !IsValid(AIEnemyController)) return;
 					AEnemy* localEnemy = safeEnemy.Get();
-
-					if (!localEnemy  || !IsValid(AIEnemyController)) return;
-						localEnemy->Destroy();
-						AIEnemyController->Destroy();
-
-
+					if (!localEnemy) return;
+					localEnemy->Destroy();
+					AIEnemyController->Destroy();
 				}, 2.0, false);
-
 		}
-
 	}
 	//AIStateBase::OnEnterState();
 }

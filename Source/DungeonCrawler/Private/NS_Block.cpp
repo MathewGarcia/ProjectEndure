@@ -12,13 +12,15 @@ void UNS_Block::NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimSequenceBase*
                             const FAnimNotifyEventReference& EventReference)
 {
 	Super::NotifyBegin(MeshComp, Animation, TotalDuration, EventReference);
-
 	if (!MeshComp) return;
 
 	bParryActive = true;
 	if (APlayerCharacter* player = Cast<APlayerCharacter>(MeshComp->GetOwner()))
 	{
-		timeStarted = player->GetWorld()->GetTimeSeconds();
+		UWorld* World = player->GetWorld();
+		if (World) {
+			timeStarted = World->GetTimeSeconds();
+		}
 	}
 }
 
@@ -42,7 +44,9 @@ void UNS_Block::NotifyTick(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* 
 
 		if (APlayerCharacter* player = Cast<APlayerCharacter>(MeshComp->GetOwner()))
 		{
-			if(player->GetWorld()->GetTimeSeconds() - timeStarted > parryWindowTime)
+			UWorld* World = player->GetWorld();
+			if (!World) return;
+			if(World->GetTimeSeconds() - timeStarted > parryWindowTime)
 			{
 				bParryActive = false;
 				return;
@@ -55,21 +59,24 @@ void UNS_Block::NotifyTick(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* 
 			TArray<AActor*> ActorsToIgnore;
 			ActorsToIgnore.Add(player);
 			TArray<UPrimitiveComponent*> HitComponents;
-			DrawDebugSphere(player->GetWorld(), Location, ParryRadius, 15, FColor::Red);
-			if (UKismetSystemLibrary::SphereOverlapComponents(player->GetWorld(), Location, ParryRadius, ObjectTypeQuery, UCapsuleComponent::StaticClass(), ActorsToIgnore, HitComponents))
+			//DrawDebugSphere(World, Location, ParryRadius, 15, FColor::Red);
+			if (UKismetSystemLibrary::SphereOverlapComponents(World, Location, ParryRadius, ObjectTypeQuery, UCapsuleComponent::StaticClass(), ActorsToIgnore, HitComponents))
 			{
 				for (UPrimitiveComponent* component : HitComponents)
 				{
+					if (!component) continue;
 					if (AEnemy* Enemy = Cast<AEnemy>(component->GetOwner()))
 					{
-						if (!Enemy->MiscMontages) return;
+						if (!Enemy->MiscMontages) continue;
 
 						if (Enemy->MiscMontages->IsValidSectionName("ParrySuccess")) {
-							if (UAnimInstance* AnimInstance = Enemy->GetMesh()->GetAnimInstance())
-							{
-								if (AnimInstance->IsAnyMontagePlaying())
+							if (USkeletalMeshComponent* EnemyMesh = Enemy->GetMesh()) {
+								if (UAnimInstance* AnimInstance = EnemyMesh->GetAnimInstance())
 								{
-									AnimInstance->StopAllMontages(0.f);
+									if (AnimInstance->IsAnyMontagePlaying())
+									{
+										AnimInstance->StopAllMontages(0.f);
+									}
 								}
 							}
 							FVector Direction = (Enemy->GetActorLocation() - player->GetActorLocation()).GetSafeNormal();

@@ -22,7 +22,10 @@ void UAbility::Logic()
 		if (APlayerCharacter* player = Cast<APlayerCharacter>(PCS->GetPawn()))
 		{
 			player->SetPlayerState(PlayerStates::ABILITY);
-			OnAbilityUsed.Broadcast();
+			if (OnAbilityUsed.IsBound())
+			{
+				OnAbilityUsed.Broadcast();
+			}
 		}
 	}
 }
@@ -43,10 +46,13 @@ void UAbility::SerializeObject(FAbilitySaveData& OutData)
 
 void UAbility::DeserializeObject(const FAbilitySaveData& InData)
 {
-	 if(const auto& RowData = InData.AbilityMetaData.Find("AbilityRow"))
-	 {
-		 AbilityTalentRow = RowData->AbilityTalentRow;
-	 }
+	if(const auto& RowData = InData.AbilityMetaData.Find("AbilityRow"))
+	{
+		if (RowData)
+		{
+			AbilityTalentRow = RowData->AbilityTalentRow;
+		}
+	}
 }
 
 void UAbility::OnTriggered()

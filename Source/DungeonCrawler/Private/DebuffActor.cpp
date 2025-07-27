@@ -15,11 +15,11 @@ ADebuffActor::ADebuffActor()
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
-
 	HitComponent = CreateDefaultSubobject <UCapsuleComponent>(TEXT("Hit Component"));
-	HitComponent->SetupAttachment(GetMesh());
+	if (GetMesh()) {
+		HitComponent->SetupAttachment(GetMesh());
+	}
 	HitComponent->SetGenerateOverlapEvents(true);
-
 
 }
 
@@ -57,10 +57,12 @@ void ADebuffActor::OnHitBoxBeginOverlap(UPrimitiveComponent* OverlappedComponent
 void ADebuffActor::BeginPlay()
 {
 	Super::BeginPlay();
-
-	HitComponent->OnComponentBeginOverlap.AddDynamic(this, &ADebuffActor::OnHitBoxBeginOverlap);
-
-	GetMesh()->PlayAnimation(AnimToPlay,false);
+	if (HitComponent) {
+		HitComponent->OnComponentBeginOverlap.AddDynamic(this, &ADebuffActor::OnHitBoxBeginOverlap);
+	}
+	if (GetMesh() && AnimToPlay) {
+		GetMesh()->PlayAnimation(AnimToPlay,false);
+	}
 }
 
 // Called every frame

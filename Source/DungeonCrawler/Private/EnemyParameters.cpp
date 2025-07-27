@@ -32,7 +32,11 @@ EElementTypes FEnemyParameters::IncreaseElementProgression(EElementTypes Current
 
 	if (float* currentVal = ElementProgression.Find(CurrentElementType))
 		{
-		*currentVal += val * (1.f - Resistances[CurrentElementType]);
+		float resistance = 0.f;
+		if (Resistances.Contains(CurrentElementType)) {
+			resistance = Resistances[CurrentElementType];
+		}
+		*currentVal += val * (1.f - resistance);
 
 		*currentVal = FMath::Clamp(*currentVal, 0.f, 1.f);
 

@@ -1,6 +1,5 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "BoxTrigger.h"
 
 #include "Enemy.h"
@@ -13,95 +12,101 @@
 #include "LevelMusicActor.h"
 #include "MainGameInstance.h"
 #include "MainPlayerWidget.h"
-#include "Components/AudioComponent.h"
 #include "Components/TextBlock.h"
 #include "Components/VerticalBox.h"
 
 // Sets default values
 ABoxTrigger::ABoxTrigger()
 {
- 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
+    // Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+    PrimaryActorTick.bCanEverTick = true;
 
-	TriggerMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Trigger Mesh"));
-	RootComponent = TriggerMesh;
+    TriggerMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Trigger Mesh"));
+    RootComponent = TriggerMesh;
 
-	Box = CreateDefaultSubobject<UBoxComponent>(TEXT("Box Component"));
-	Box->SetGenerateOverlapEvents(true);
-	Box->SetupAttachment(RootComponent);
+    Box = CreateDefaultSubobject<UBoxComponent>(TEXT("Box Component"));
+    Box->SetGenerateOverlapEvents(true);
+    Box->SetupAttachment(RootComponent);
 }
 
 void ABoxTrigger::BeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if (!MusicActorPtr.IsValid()) return;
+    if (!MusicActorPtr.IsValid() || !Box) return;
 
-	if (OtherActor) {
-		if(APlayerCharacter*player = Cast<APlayerCharacter>(OtherActor))
-		{
+    if (OtherActor) {
+        if(APlayerCharacter*player = Cast<APlayerCharacter>(OtherActor))
+        {
 
-			if(ALevelMusicActor*MusicActor = MusicActorPtr.Get())
-			{
-				MusicActor->SetAndPlayMusic();
-			}
+            if(ALevelMusicActor*MusicActor = MusicActorPtr.Get())
+            {
+                MusicActor->SetAndPlayMusic();
+            }
 
-			if(EnemyReference.IsValid())
-			{
-				if(AEnemy*Enemy = Cast<AEnemy>(EnemyReference.Get()))
-				{
-					Enemy->SetActorLocation(Box->Bounds.Origin);
-					FVector DirectionToPlayer = (player->GetActorLocation() - Enemy->GetActorLocation());
-					Enemy->SetActorRotation(DirectionToPlayer.Rotation());
-					if(ABoss_Wave*WaveEnemy = Cast<ABoss_Wave>(Enemy))
-					{
-						WaveEnemy->StartBoss();
-					}
+            if(EnemyReference.IsValid())
+            {
+                if(AEnemy*Enemy = Cast<AEnemy>(EnemyReference.Get()))
+                {
+                    Enemy->SetActorLocation(Box->Bounds.Origin);
+                    FVector DirectionToPlayer = (player->GetActorLocation() - Enemy->GetActorLocation());
+                    Enemy->SetActorRotation(DirectionToPlayer.Rotation());
+                    if(ABoss_Wave*WaveEnemy = Cast<ABoss_Wave>(Enemy))
+                    {
+                        WaveEnemy->StartBoss();
+                    }
 
-					if(AAIEnemy*AIEnemyController = Cast<AAIEnemy>(Enemy->GetController()))
-					{
-						if(UMainGameInstance*MGI = Cast<UMainGameInstance>(GetWorld()->GetGameInstance()))
-						{
-							AIEnemyController->Player = MGI->localPlayer;
-						}
-						AIEnemyController->ChangeAIState(AIEnemyController->AttackState.Get());
-					}
-					Box->SetCollisionEnabled(ECollisionEnabled::Type::NoCollision);
-					if(APlayerController*PC = Cast<APlayerController>(player->GetController()))
-					{
-						if(AInGamePlayerHUD*InGamePlayerHUD = Cast<AInGamePlayerHUD>(PC->GetHUD()))
-						{
-							if(UMainPlayerWidget*MainUIWidget = InGamePlayerHUD->GetMainUIWidget())
-							{
-								if(MainUIWidget->BossInfo)
-								{
-									if (MainUIWidget->BossName)
-									{
-										MainUIWidget->BossName->SetText(Enemy->EnemyName);
-									}
-									MainUIWidget->BossInfo->SetVisibility(ESlateVisibility::Visible);
-								}
-								MainUIWidget->UpdateProgressBar("BossHealth", Enemy->Health / Enemy->MaxHealth);
-							}
-						}
-					}
-				}
-			}
-		}
-		UE_LOG(LogTemp, Warning, TEXT("SOMETHING OVERLAPPED"));
-	}
+                    if(AAIEnemy*AIEnemyController = Cast<AAIEnemy>(Enemy->GetController()))
+                    {
+                        if(GetWorld()) {
+                            if(UMainGameInstance*MGI = Cast<UMainGameInstance>(GetWorld()->GetGameInstance()))
+                            {
+                                AIEnemyController->Player = MGI->localPlayer;
+                            }
+                        }
+                        if (AIEnemyController->AttackState.IsValid()) {
+                            AIEnemyController->ChangeAIState(AIEnemyController->AttackState.Get());
+                        }
+                    }
+                    Box->SetCollisionEnabled(ECollisionEnabled::Type::NoCollision);
+                    if(APlayerController*PC = Cast<APlayerController>(player->GetController()))
+                    {
+                        if(AInGamePlayerHUD*InGamePlayerHUD = Cast<AInGamePlayerHUD>(PC->GetHUD()))
+                        {
+                            if(UMainPlayerWidget*MainUIWidget = InGamePlayerHUD->GetMainUIWidget())
+                            {
+                                if(MainUIWidget->BossInfo)
+                                {
+                                    if (MainUIWidget->BossName)
+                                    {
+                                        MainUIWidget->BossName->SetText(Enemy->EnemyName);
+                                    }
+                                    // UVerticalBox does not have SetVisibility, so use SetVisibility on the widget itself
+                                    MainUIWidget->SetVisibility(ESlateVisibility::Visible);
+                                }
+                                if (Enemy->MaxHealth > 0) {
+                                    MainUIWidget->UpdateProgressBar("BossHealth", Enemy->Health / Enemy->MaxHealth);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        UE_LOG(LogTemp, Warning, TEXT("SOMETHING OVERLAPPED"));
+    }
 }
 
 // Called when the game starts or when spawned
 void ABoxTrigger::BeginPlay()
 {
-	Super::BeginPlay();
-	
-	Box->OnComponentBeginOverlap.AddDynamic(this, &ABoxTrigger::BeginOverlap);
+    Super::BeginPlay();
+    if (Box) {
+        Box->OnComponentBeginOverlap.AddDynamic(this, &ABoxTrigger::BeginOverlap);
+    }
 }
 
 // Called every frame
 void ABoxTrigger::Tick(float DeltaTime)
 {
-	Super::Tick(DeltaTime);
-
+    Super::Tick(DeltaTime);
 }
 

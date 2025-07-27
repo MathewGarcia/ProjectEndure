@@ -1,6 +1,5 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "AIState_Attack.h"
 
 #include "AIEnemy.h"
@@ -12,70 +11,57 @@
 
 void AIState_Attack::OnEnterState()
 {
-	AIStateBase::OnEnterState();
-
+    AIStateBase::OnEnterState();
 }
 
 void AIState_Attack::OnExitState()
 {
-	AIStateBase::OnExitState();
-
+    AIStateBase::OnExitState();
 }
 
 void AIState_Attack::TickState(float DeltaTime)
 {
-	AIStateBase::TickState(DeltaTime);
-
-    if (!PlayerWeakPtr.IsValid()) return;
-
+    AIStateBase::TickState(DeltaTime);
+    // Nullptr safety for player and controller
+    if (!PlayerWeakPtr.IsValid() || !AIEnemyController) return;
     APlayerCharacter* player = PlayerWeakPtr.Get();
-
-		if (AEnemy* Enemy = Cast<AEnemy>(AIEnemyController->GetPawn())) {
-
-			if (world)
-			{
-				if (Enemy->CanAttack() && !AIEnemyController->IsFollowingAPath() && PlayerDistance > Enemy->AttackDistance*20.f) {
-
-                    if (!Enemy->bUseControllerRotationYaw)
-                    {
-                        Enemy->bUseControllerRotationYaw = true;
-                    }
-
-
-					EPathFollowingRequestResult::Type Result = AIEnemyController->MoveToActor(player, Enemy->AttackDistance);
-
-					if (Result == 1)
-					{
-						IsInRange = true;
-					}
-					else if (Result != 1 && IsInRange)
-					{
-						IsInRange = false;
-					}
-
-					UE_LOG(LogTemp, Warning, TEXT("RESULT: %d"), Result);
-				}
-
-		}
-	}
+    if (!player) return;
+    if (AEnemy* Enemy = Cast<AEnemy>(AIEnemyController->GetPawn())) {
+        if (world)
+        {
+            if (Enemy->CanAttack() && !AIEnemyController->IsFollowingAPath() && PlayerDistance > Enemy->AttackDistance*20.f) {
+                if (!Enemy->bUseControllerRotationYaw)
+                {
+                    Enemy->bUseControllerRotationYaw = true;
+                }
+                EPathFollowingRequestResult::Type Result = AIEnemyController->MoveToActor(player, Enemy->AttackDistance);
+                if (Result == 1)
+                {
+                    IsInRange = true;
+                }
+                else if (Result != 1 && IsInRange)
+                {
+                    IsInRange = false;
+                }
+                UE_LOG(LogTemp, Warning, TEXT("RESULT: %d"), Result);
+            }
+        }
+    }
 }
 
 float AIState_Attack::CalculateOptions()
 {
-	return AIStateBase::CalculateOptions();
+    return AIStateBase::CalculateOptions();
 }
 
 EAIStates AIState_Attack::GetState()
 {
-	return EAIStates::attack;
+    return EAIStates::attack;
 }
 
 TUniquePtr<AIDecisionTreeNode> AIState_Attack::BuildDecisionTree(AEnemy* Enemy)
 {
-
     //feature indices: 0 is player distance, 1 is player health, 2 is enemy health, 3 is player stamina, 4 is player state, 5 is montage time, 6 is player facing away?
-
-
     /*
      *                                                        (R)
      *                                   /                                      \
@@ -91,9 +77,9 @@ TUniquePtr<AIDecisionTreeNode> AIState_Attack::BuildDecisionTree(AEnemy* Enemy)
      *                                                                                          /     \                   /     \
      *                                                                                        (Defense) (Attack)       (Defense)   (Attack)
      */
+    if (!Enemy) return nullptr;
     TUniquePtr<AIDecisionTreeNode> Root = AIStateBase::BuildDecisionTree(Enemy);
-
-
+    if (!Root) return nullptr;
     Root->LeftChild = BuildInRange(Enemy);
     Root->RightChild = BuildNotInRange(Enemy);
     return Root;
@@ -101,10 +87,7 @@ TUniquePtr<AIDecisionTreeNode> AIState_Attack::BuildDecisionTree(AEnemy* Enemy)
 
 TUniquePtr<AIDecisionTreeNode> AIState_Attack::BuildInRange(AEnemy* Enemy)
 {
-
     //feature indices: 0 is player distance, 1 is player health, 2 is enemy health, 3 is enemy stamina, 4 is player state, 5 is montage time, 6 is player facing away?
-
-
     /*
     *                                                        (R)
     *                                   /                                      \
@@ -120,13 +103,10 @@ TUniquePtr<AIDecisionTreeNode> AIState_Attack::BuildInRange(AEnemy* Enemy)
     *                                                                                            /     \                   /     \
     *                                                                                        (Defense) (Attack)       (Defense)   (Attack)
     */
-
     TUniquePtr<AIDecisionTreeNode> InRange = nullptr;
-
-    if (!PlayerWeakPtr.IsValid()) return nullptr;
-
+    if (!Enemy || !PlayerWeakPtr.IsValid()) return nullptr;
     APlayerCharacter* player = PlayerWeakPtr.Get();
-
+    if (!player) return nullptr;
     if (APlayerCharacterState* PCS = Cast<APlayerCharacterState>(player->GetPlayerState()))
     {
 
@@ -175,7 +155,6 @@ TUniquePtr<AIDecisionTreeNode> AIState_Attack::BuildInRange(AEnemy* Enemy)
         TUniquePtr<AIDecisionTreeNode> DefenseStrongR = DecisionTreeHelper::MakeLeafNode([this]() {AIEnemyController->ChangeAIState(AIEnemyController->DefenseState.Get()); });
         TUniquePtr<AIDecisionTreeNode> AttackR = DecisionTreeHelper::MakeLeafNode([this,Enemy]() {Enemy->Attack(); UE_LOG(LogTemp, Warning, TEXT("ATTACK CALLED FROM ATTACKR WITH : %f"), AIEnemyController->features[8]); });
         TUniquePtr<AIDecisionTreeNode> OpportunityCheck = DecisionTreeHelper::MakeDecisionNode(5, 0.5);
-
         TUniquePtr<AIDecisionTreeNode> Wait = DecisionTreeHelper::MakeLeafNode([this, Enemy]()
         {
                 if (!PlayerWeakPtr.IsValid()) return;
@@ -196,8 +175,6 @@ TUniquePtr<AIDecisionTreeNode> AIState_Attack::BuildInRange(AEnemy* Enemy)
                 }
         });
 
-        
-
         //Left
         IsPlayerWeak->LeftChild = MoveTemp(IsEnemyWeak);
         IsPlayerWeak->LeftChild->LeftChild = MoveTemp(StaminaCheckL);
@@ -205,8 +182,6 @@ TUniquePtr<AIDecisionTreeNode> AIState_Attack::BuildInRange(AEnemy* Enemy)
         IsPlayerWeak->LeftChild->LeftChild->RightChild->RightChild = MoveTemp(CanAttackL);
         IsPlayerWeak->LeftChild->LeftChild->RightChild->LeftChild = MoveTemp(DefenseFromLackOfPassivity);
         IsPlayerWeak->LeftChild->LeftChild->LeftChild = MoveTemp(DefenseL);
-
-        
 
         //Right
         ShouldAttackRL->LeftChild = MoveTemp(DefenseRL);
@@ -216,8 +191,6 @@ TUniquePtr<AIDecisionTreeNode> AIState_Attack::BuildInRange(AEnemy* Enemy)
         StaminaCheckR->LeftChild = MoveTemp(ShouldAttackRL);
         StaminaCheckR->RightChild = MoveTemp(ShouldAttackRR);
         
-
-
 
         //Player Is Strong
         AttackCheckL->LeftChild = MoveTemp(DefenseStrongL);
@@ -232,9 +205,7 @@ TUniquePtr<AIDecisionTreeNode> AIState_Attack::BuildInRange(AEnemy* Enemy)
         //PassivityCheckBranch
         PassivityCheck->RightChild = MoveTemp(EnemyStrongAttack);
         PassivityCheck->LeftChild = MoveTemp(PassivityCheckL);
-
         StrongIsEnemyWeak->LeftChild = MoveTemp(OpportunityCheck);
-
         StrongIsEnemyWeak->RightChild = MoveTemp(PassivityCheck);
 
 
@@ -243,9 +214,9 @@ TUniquePtr<AIDecisionTreeNode> AIState_Attack::BuildInRange(AEnemy* Enemy)
         InRange->LeftChild = MoveTemp(StrongIsEnemyWeak);
         InRange->LeftChild->RightChild = MoveTemp(StaminaCheckR);
         InRange->RightChild = MoveTemp(Wait);
-
+        return InRange;
     }
-    return InRange;
+    return nullptr;
 }
 
 TUniquePtr<AIDecisionTreeNode> AIState_Attack::BuildNotInRange(AEnemy* Enemy)
@@ -260,30 +231,23 @@ TUniquePtr<AIDecisionTreeNode> AIState_Attack::BuildNotInRange(AEnemy* Enemy)
      *        (Defense)      (Attack)
      *
      */
+    if (!Enemy) return nullptr;
     TUniquePtr<AIDecisionTreeNode> DoesHaveLongRange = DecisionTreeHelper::MakeDecisionNode(9, 0.5);
-
-    TUniquePtr<AIDecisionTreeNode> WeHaveLongRange = DecisionTreeHelper::MakeLeafNode([Enemy]()
-        {
-            if (!Enemy) return;
-
-            UE_LOG(LogTemp, Warning, TEXT("Throwing rock"));
+    TUniquePtr<AIDecisionTreeNode> WeHaveLongRange = DecisionTreeHelper::MakeLeafNode([Enemy]() {
+        if (!Enemy) return;
+        UE_LOG(LogTemp, Warning, TEXT("Throwing rock"));
         int32 pos = Enemy->CanUseAblity(EAbilityType::Offensive);
-            if(pos > -1)
-            {
-                Enemy->UseAbility(EAbilityType::Offensive, pos);
-            }
+        if(pos > -1)
+        {
+            Enemy->UseAbility(EAbilityType::Offensive, pos);
+        }
     });
-    /*if (APlayerCharacterState* PCS = Cast<APlayerCharacterState>(player->GetPlayerState()))
-    {
-        TUniquePtr<AIDecisionTreeNode> HealthCheck
-    }*/
-
     DoesHaveLongRange->RightChild = MoveTemp(WeHaveLongRange);
     return DoesHaveLongRange;
 }
 
 void AIState_Attack::ExecuteOption(float weight,AEnemy*Enemy)
 {
-	AIStateBase::ExecuteOption(weight,Enemy);
+    AIStateBase::ExecuteOption(weight,Enemy);
 }
 

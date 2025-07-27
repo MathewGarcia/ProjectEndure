@@ -14,6 +14,7 @@ void UBuff_Cooldown_Reduction::Execute()
 	{
 		for(UAbility*Ability : PCS->LearnedAbilities)
 		{
+			if (!Ability) continue;
 			//reduce cooldown time by 10%
 			if (Ability->AbilityActivationType == EAbilityActivationType::Activate && Ability->Cooldown > 0) {
 				Ability->Cooldown = FMath::Max(Ability->Cooldown * 0.9f, Ability->MinCooldownTime);

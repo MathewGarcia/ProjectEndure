@@ -9,14 +9,15 @@
 //deprecated
 void UWeaponItem::useItem_Implementation(APlayerCharacter* player)
 {
-
-	if (!player) return;
-
-	if (UWeaponItemData* WeaponItemData = Cast<UWeaponItemData>(ItemData)) {
-
-		if (AWeapon* SpawnedWeapon = GetWorld()->SpawnActor<AWeapon>(WeaponItemData->ItemToSpawn)) {
-			SpawnedWeapon->ItemData = WeaponItemData;
-			player->tryEquipGear(SpawnedWeapon, WeaponItemData->GearType, ItemDataObject);
-		}
-	}
+    if (!player) return;
+    UWorld* World = GetWorld();
+    if (!World) return;
+    if (UWeaponItemData* WeaponItemData = Cast<UWeaponItemData>(ItemData)) {
+        if (WeaponItemData->ItemToSpawn) {
+            if (AWeapon* SpawnedWeapon = World->SpawnActor<AWeapon>(WeaponItemData->ItemToSpawn)) {
+                SpawnedWeapon->ItemData = WeaponItemData;
+                player->tryEquipGear(SpawnedWeapon, WeaponItemData->GearType, ItemDataObject);
+            }
+        }
+    }
 }

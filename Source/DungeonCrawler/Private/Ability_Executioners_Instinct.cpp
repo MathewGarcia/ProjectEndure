@@ -18,12 +18,12 @@ void UAbility_Executioners_Instinct::execute_Implementation()
 		{
 			player->OnEnemyDamageTaken.AddLambda([this](AEnemy* Enemy,float& Damage)
 			{
-
-					float RemainingHealth = Enemy->Health / Enemy->MaxHealth;
-					if (RemainingHealth <= 0.2f)
-					{
-						Damage *= 1.25;
-					}
+				if (!Enemy || Enemy->MaxHealth <= 0.f) return;
+				float RemainingHealth = Enemy->Health / Enemy->MaxHealth;
+				if (RemainingHealth <= 0.2f)
+				{
+					Damage *= 1.25;
+				}
 
 			});
 		}

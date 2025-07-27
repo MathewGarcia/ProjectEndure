@@ -5,8 +5,7 @@
 
 TUniquePtr<AIDecisionTreeNode> AIState_Attack_Boss_Necro::BuildInRange(AEnemy* Enemy)
 {
-
-	if (!PlayerWeakPtr.IsValid()) return nullptr;
+	if (!Enemy || !PlayerWeakPtr.IsValid() || !AIEnemyController) return nullptr;
 
 
 	/*
@@ -22,9 +21,11 @@ TUniquePtr<AIDecisionTreeNode> AIState_Attack_Boss_Necro::BuildInRange(AEnemy* E
 	TUniquePtr<AIDecisionTreeNode> MoveBackward = DecisionTreeHelper::MakeLeafNode([this, Enemy]()
 		{
 
-			if (!PlayerWeakPtr.IsValid()) return;
+			if (!PlayerWeakPtr.IsValid() || !AIEnemyController) return;
 
 			APlayerCharacter* player = PlayerWeakPtr.Get();
+			if (!player) return;
+
 			UE_LOG(LogTemp, Warning, TEXT("NECRO MOVE TO BACKWARD CALLED IN RANGE"));
 
 			if (Enemy->bUseControllerRotationYaw)
@@ -35,7 +36,7 @@ TUniquePtr<AIDecisionTreeNode> AIState_Attack_Boss_Necro::BuildInRange(AEnemy* E
 			// Compute direction to player (ignoring Z to keep movement parallel to ground)
 			FVector ToPlayer = (player->GetActorLocation() - Enemy->GetActorLocation());
 			ToPlayer.Z = 0;
-			ToPlayer.Normalize();
+			if (!ToPlayer.IsNearlyZero()) ToPlayer.Normalize();
 
 			// Make the AI face the player
 			FRotator FacePlayerRotation = ToPlayer.Rotation();
@@ -59,7 +60,7 @@ TUniquePtr<AIDecisionTreeNode> AIState_Attack_Boss_Necro::BuildInRange(AEnemy* E
 
 	TUniquePtr<AIDecisionTreeNode> Wait = DecisionTreeHelper::MakeLeafNode([this, Enemy]()
 		{
-			if (!PlayerWeakPtr.IsValid()) return;
+			if (!PlayerWeakPtr.IsValid() || !AIEnemyController) return;
 
 			if (APlayerCharacter* player = PlayerWeakPtr.Get())
 			{
@@ -81,6 +82,8 @@ TUniquePtr<AIDecisionTreeNode> AIState_Attack_Boss_Necro::BuildInRange(AEnemy* E
 
 	TUniquePtr<AIDecisionTreeNode> Attack = DecisionTreeHelper::MakeLeafNode([this, Enemy]()
 		{
+			if (!Enemy) return;
+
 			UE_LOG(LogTemp, Warning, TEXT("NECRO ATTACK IN RANGE"));
 
 			Enemy->Attack();
@@ -99,7 +102,7 @@ TUniquePtr<AIDecisionTreeNode> AIState_Attack_Boss_Necro::BuildNotInRange(AEnemy
 	//feature indices: 0 is player distance, 1 is player health, 2 is enemy health, 3 is enemy stamina, 4 is player state, 5 is montage time, 6 is player facing away?, 7 used for checking if AI should buff or go to near by enemies., 8 Passivity float
 	//if we are not in range, we want to still stay a minimum distance away from the player. However, we should summon enemies.
 
-	if (!PlayerWeakPtr.IsValid()) return nullptr;
+	if (!Enemy || !PlayerWeakPtr.IsValid() || !AIEnemyController) return nullptr;
 
 
 	TUniquePtr<AIDecisionTreeNode> DistanceCheck = DecisionTreeHelper::MakeDecisionNode(0, 800.f);
@@ -108,9 +111,10 @@ TUniquePtr<AIDecisionTreeNode> AIState_Attack_Boss_Necro::BuildNotInRange(AEnemy
 
 			UE_LOG(LogTemp, Warning, TEXT("NECRO MOVEBACKWARD CALLED NIR"));
 
-			if (!PlayerWeakPtr.IsValid()) return;
+			if (!PlayerWeakPtr.IsValid() || !AIEnemyController) return;
 
 			APlayerCharacter* player = PlayerWeakPtr.Get();
+			if (!player) return;
 
 			if (Enemy->bUseControllerRotationYaw)
 			{
@@ -120,7 +124,7 @@ TUniquePtr<AIDecisionTreeNode> AIState_Attack_Boss_Necro::BuildNotInRange(AEnemy
 			// Compute direction to player (ignoring Z to keep movement parallel to ground)
 			FVector ToPlayer = (player->GetActorLocation() - Enemy->GetActorLocation());
 			ToPlayer.Z = 0;
-			ToPlayer.Normalize();
+			if (!ToPlayer.IsNearlyZero()) ToPlayer.Normalize();
 
 			// Make the AI face the player
 			FRotator FacePlayerRotation = ToPlayer.Rotation();
@@ -145,6 +149,8 @@ TUniquePtr<AIDecisionTreeNode> AIState_Attack_Boss_Necro::BuildNotInRange(AEnemy
 
 	TUniquePtr<AIDecisionTreeNode> Attack = DecisionTreeHelper::MakeLeafNode([this, Enemy]()
 		{
+			if (!Enemy) return;
+
 			UE_LOG(LogTemp, Warning, TEXT("NECRO ATTACK CALLED NIR"));
 
 			int pos = Enemy->CanUseAblity(EAbilityType::Offensive);
@@ -156,9 +162,10 @@ TUniquePtr<AIDecisionTreeNode> AIState_Attack_Boss_Necro::BuildNotInRange(AEnemy
 			else
 			{
 				//movebackward
-				if (!PlayerWeakPtr.IsValid()) return;
+				if (!PlayerWeakPtr.IsValid() || !AIEnemyController) return;
 
 				APlayerCharacter* player = PlayerWeakPtr.Get();
+				if (!player) return;
 
 				if (Enemy->bUseControllerRotationYaw)
 				{ 
@@ -168,7 +175,7 @@ TUniquePtr<AIDecisionTreeNode> AIState_Attack_Boss_Necro::BuildNotInRange(AEnemy
 				// Compute direction to player (ignoring Z to keep movement parallel to ground)
 				FVector ToPlayer = (player->GetActorLocation() - Enemy->GetActorLocation());
 				ToPlayer.Z = 0;
-				ToPlayer.Normalize();
+				if (!ToPlayer.IsNearlyZero()) ToPlayer.Normalize();
 
 				// Make the AI face the player
 				FRotator FacePlayerRotation = ToPlayer.Rotation();
@@ -202,9 +209,10 @@ TUniquePtr<AIDecisionTreeNode> AIState_Attack_Boss_Necro::BuildDecisionTree(AEne
 	TUniquePtr<AIDecisionTreeNode> Root = AIState_Attack::BuildDecisionTree(Enemy);
 	TUniquePtr<AIDecisionTreeNode> InRange = BuildInRange(Enemy);
 	TUniquePtr<AIDecisionTreeNode> NotInRange = BuildNotInRange(Enemy);
-	Root->LeftChild = MoveTemp(InRange);
-	Root->RightChild = MoveTemp(NotInRange);
-
+	if (Root) {
+		Root->LeftChild = MoveTemp(InRange);
+		Root->RightChild = MoveTemp(NotInRange);
+	}
 	return Root;
 }
 

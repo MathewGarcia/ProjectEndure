@@ -1,6 +1,5 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "WeaponInstance.h"
 #include "InventoryWidget.h"
 #include "PlayerCharacter.h"
@@ -11,24 +10,20 @@
 void UWeaponInstance::UpgradeWeapon()
 {
 	if (UWeaponItemData* WeaponItemData = Cast<UWeaponItemData>(ItemData)) {
-
-
 		if (APlayerCharacterState* pcs = Cast<APlayerCharacterState>(GetOuter()))
 		{
 			for (const auto& itemToRemove : ItemsToRemove)
 			{
-				pcs->RemoveItemFromInventory(itemToRemove.Key, itemToRemove.Value);
+				if (itemToRemove.Key) {
+					pcs->RemoveItemFromInventory(itemToRemove.Key, itemToRemove.Value);
+				}
 			}
-
 			pcs->playerStats.UpdateEXP(-EXPNeeded);
-
 			if(APlayerCharacter*player = Cast<APlayerCharacter>(pcs->GetPawn()))
 			{
 				player->UpdateEXPWidget();
 			}
-
 		}
-
 		++CurrentWeaponLevel;
 		Strength = WeaponItemData->UpgradeStat(WeaponItemData->Strength, CurrentWeaponLevel, WeaponItemData->WeaponUpgradeStep, WeaponItemData->WeaponUpgradeExponent);
 		BaseDamage = WeaponItemData->UpgradeStat(WeaponItemData->BaseDamage, CurrentWeaponLevel, WeaponItemData->WeaponUpgradeStep, WeaponItemData->WeaponUpgradeExponent);
@@ -42,15 +37,12 @@ void UWeaponInstance::UpgradeWeapon()
 		{
 			ElementalCoreResourceAmt = WeaponItemData->IncreaseResourceAmt(1, WeaponItemData->ElementalCoreResourceAmt, CurrentWeaponLevel, 0);
 		}
-
 	}
-
 }
 
 void UWeaponInstance::InitAccordingToLevel(int Level)
 {
-	if (Level == 0) return;
-
+	//if (Level == 0) return;
 	if (UWeaponItemData* WeaponItemData = Cast<UWeaponItemData>(ItemData)) {
 		CurrentWeaponLevel = Level;
 		Strength = WeaponItemData->UpgradeStat(WeaponItemData->Strength, Level, WeaponItemData->WeaponUpgradeStep, WeaponItemData->WeaponUpgradeExponent);
@@ -72,6 +64,7 @@ bool UWeaponInstance::bCanUpgrade()
 {
 	if (APlayerCharacterState* pcs = Cast<APlayerCharacterState>(GetOuter()))
 	{
+		ItemsToRemove.Empty();
 		for (UItemDataObject* item : pcs->GetInventory())
 		{
 			if (!item || !item->ItemData) continue;
@@ -100,8 +93,7 @@ bool UWeaponInstance::bCanUpgrade()
 					ItemsToRemove.Empty();
 					return false;
 				}
-				ItemsToRemove.Add(item, IronFragmentResourceAmt);
-
+				ItemsToRemove.Add(item, IronStoneResourceAmt);
 			}
 			else if (item->ItemData->ItemName.ToString().Equals("Elemental Core"))
 			{
@@ -110,7 +102,7 @@ bool UWeaponInstance::bCanUpgrade()
 					ItemsToRemove.Empty();
 					return false;
 				}
-				ItemsToRemove.Add(item, IronFragmentResourceAmt);
+				ItemsToRemove.Add(item, ElementalCoreResourceAmt);
 			}
 		}
 		if (pcs->playerStats.totalEXPGained < EXPNeeded)
@@ -118,7 +110,6 @@ bool UWeaponInstance::bCanUpgrade()
 			ItemsToRemove.Empty();
 			return false;
 		}
-
 		return true;
 	}
 	ItemsToRemove.Empty();
@@ -127,9 +118,7 @@ bool UWeaponInstance::bCanUpgrade()
 
 void UWeaponInstance::SerializeWeapon(FWeaponInstanceSaveData& Output)
 {
-
 	if (UWeaponItemData* WeaponItemData = Cast<UWeaponItemData>(ItemData)) {
-
 		Output.WeaponID = WeaponItemData->ItemName.ToString();
 		Output.CurrentWeaponLevel = CurrentWeaponLevel;
 		Output.Strength = Strength;
@@ -142,34 +131,12 @@ void UWeaponInstance::SerializeWeapon(FWeaponInstanceSaveData& Output)
 		Output.IronStoneResourceAmt = IronStoneResourceAmt;
 		Output.ElementalCoreResourceAmt = ElementalCoreResourceAmt;
 		Output.EXPNeeded = EXPNeeded;
-		Output.Quantity = Quantity;
+		Output.Quantity = ItemData->Quantity;
 	}
-	/*
-	 * 
-	int CurrentWeaponLevel = 0;
-	int Strength = 0;
-	int Intellect = 0;
-	int BaseDamage = 0;
-	EElementTypes WeaponElementType;
-	float ElementTypeDamage = 0;
-
-
-
-	int IronCoreResourceAmt = 0;
-
-	int IronFragmentResourceAmt = 0;
-
-	int IronStoneResourceAmt = 0;
-
-	int ElementalCoreResourceAmt = 0;
-
-	int EXPNeeded = 0;
-	 */
 }
 
 void UWeaponInstance::RandomlySetElementType()
 {
-
 	int RandomNum = FMath::RandRange(0, 6);
 		switch(RandomNum)
 		{
@@ -178,32 +145,24 @@ void UWeaponInstance::RandomlySetElementType()
 			break;
 		case 1:
 			WeaponElementType = EElementTypes::Fire;
-
 			break;
 		case 2:
 			WeaponElementType = EElementTypes::Shadow;
-
 			break;
 		case 3:
 			WeaponElementType = EElementTypes::Water;
-
 			break;
 		case 4:
 			WeaponElementType = EElementTypes::Lightening;
-
 			break;
 		case 5:
 			WeaponElementType = EElementTypes::Bleed;
-
 			break;
 		case 6:
 			WeaponElementType = EElementTypes::Poison;
 			break;
-
-			default:
-				WeaponElementType = EElementTypes::Physical;
-
+		default:
+			WeaponElementType = EElementTypes::Physical;
 		}
-
 		ElementTypeDamage += 1.f;
 }

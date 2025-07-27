@@ -16,54 +16,66 @@ class DUNGEONCRAWLER_API UGearItemInstance : public UItemDataObject
 {
 	GENERATED_BODY()
 public:
-
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Gear Stats")
 	int Strength = 0;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Gear Stats")
 	int Intellect = 0;
-	int GearLevel = 0;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Gear Stats")
+	int GearLevel = 0;  // This is especially important for your stacking logic!
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Gear Stats")
 	int Stamina = 0;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Gear Stats")
 	int Health = 0;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Gear Stats")
 	float PhysicalProtection = 0.f;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Gear Stats")
 	float PoiseProtection = 0.f;
 
 	UPROPERTY(EditAnywhere, Category = "Gear Stats")
-	float WaterResistance = 0.0; //slows enemy, if hit with fire the enemy will steam. Burning them causing a dot.
+	float WaterResistance = 0.0;
 
 	UPROPERTY(EditAnywhere, Category = "Gear Stats")
-	float FireResistance = 0.0; //Burn debuff is added causing the player to become weaker to physical attacks.
+	float FireResistance = 0.0;
 
 	UPROPERTY(EditAnywhere, Category = "Gear Stats")
-	float LighteningResistance = 0.0; //cause a lightening strike to come down and stun the player.
+	float LighteningResistance = 0.0;
 
 	UPROPERTY(EditAnywhere, Category = "Gear Stats")
-	float ShadowResistance = 0.0; //Shadow hand appear attempting to strike the enemy.
+	float ShadowResistance = 0.0;
 
 	UPROPERTY(EditAnywhere, Category = "Gear Stats")
-	float BleedResistance = 0.0; //Bleed causing 2x damage.
+	float BleedResistance = 0.0;
 
 	UPROPERTY(EditAnywhere, Category = "Gear Stats")
-	float PoisonResistance = 0.0; //Damage over time is caused.
+	float PoisonResistance = 0.0;
 
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Gear Resources")
 	int IronCoreResourceAmt = 0;
 
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Gear Resources")
 	int IronFragmentResourceAmt = 0;
 
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Gear Resources")
 	int IronStoneResourceAmt = 0;
 
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Gear Resources")
 	int ElementalCoreResourceAmt = 0;
 
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Gear Resources")
 	int EXPNeeded = 0;
 
 	UPROPERTY()
-	TMap<UItemDataObject*,int> ItemsToRemove;
-
+	TMap<UItemDataObject*, int> ItemsToRemove;
 
 	void InitializeStats();
-
 	void UpgradeGear();
-
 	bool bCanUpgrade();
-
 	void SeralizeGearItem(FGearItemInstanceSaveData& Output);
-
 	void InitStatsAccordingToLevel(int Level);
 };

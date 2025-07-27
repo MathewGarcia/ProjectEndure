@@ -29,13 +29,10 @@ int UInventoryItemWidget::GetQuantity()
 void UInventoryItemWidget::NativeOnListItemObjectSet(UObject* ListItemObject)
 {
 	IUserObjectListEntry::NativeOnListItemObjectSet(ListItemObject);
-
     if (UItemDataObject* DataObj = Cast<UItemDataObject>(ListItemObject))
     {
         UE_LOG(LogTemp, Warning, TEXT("LIST ITEM OBJECT: %s"), *ListItemObject->GetName());
-
         if (!DataObj->ItemData) return;
-
         UItemDataAsset* ItemData = DataObj->ItemData;
         itemData = ItemData;
         itemDataObject = DataObj;
@@ -46,10 +43,9 @@ void UInventoryItemWidget::NativeOnListItemObjectSet(UObject* ListItemObject)
         if (QuantityText) {
             QuantityText->SetText(FText::AsNumber(itemDataObject->Quantity));
         }
-        if (ItemPic) {
+        if (ItemPic && ItemData->Image) {
             ItemPic->SetBrushFromTexture(ItemData->Image);
         }
-
         if(APlayerController*PC= GetOwningPlayer())
         {
             if(AInGamePlayerHUD*PlayerHUD = Cast<AInGamePlayerHUD>(PC->GetHUD()))
@@ -60,7 +56,6 @@ void UInventoryItemWidget::NativeOnListItemObjectSet(UObject* ListItemObject)
                }
             }
         }
-
     }
     if(ItemButton)
     {
@@ -76,47 +71,41 @@ void UInventoryItemWidget::RefreshText()
     }
 }
 
-
 void UInventoryItemWidget::OnItemClicked()
 {
+    if (!itemData || !itemDataObject) return;
     UE_LOG(LogTemp, Warning, TEXT("Item clicked using item %s"), *itemData->ItemName.ToString());
-
-
-        if (APlayerCharacter* player = Cast<APlayerCharacter>(GetOwningPlayerPawn())){
-            if (itemDataObject && itemDataObject->ItemData->ItemLogicClass) {
-                if (UWeaponItemData* WID = Cast<UWeaponItemData>(itemData)) {
-                    if (APlayerCharacterState* localPCS = player->GetPlayerCharacterState()) {
-                        if (localPCS->playerStats.Strength < WID->ReqStrength || localPCS->playerStats.Intellect < WID->ReqIntellect)
-                        {
-                            return;
-                        }
+    if (APlayerCharacter* player = Cast<APlayerCharacter>(GetOwningPlayerPawn())){
+        if (itemDataObject->ItemData && itemDataObject->ItemData->ItemLogicClass) {
+            if (UWeaponItemData* WID = Cast<UWeaponItemData>(itemData)) {
+                if (APlayerCharacterState* localPCS = player->GetPlayerCharacterState()) {
+                    if (localPCS->playerStats.Strength < WID->ReqStrength || localPCS->playerStats.Intellect < WID->ReqIntellect)
+                    {
+                        return;
                     }
                 }
-                else if (UGearItemData* GID = Cast<UGearItemData>(itemData)) {
-                    if (APlayerCharacterState* localPCS = player->GetPlayerCharacterState()) {
-                        if (localPCS->playerStats.Strength < GID->ReqStrength || localPCS->playerStats.Intellect < GID->ReqIntellect)
-                        {
-                            return;
-                        }
-                    }
-                }
-                player->UseItem(itemDataObject);
             }
+            else if (UGearItemData* GID = Cast<UGearItemData>(itemData)) {
+                if (APlayerCharacterState* localPCS = player->GetPlayerCharacterState()) {
+                    if (localPCS->playerStats.Strength < GID->ReqStrength || localPCS->playerStats.Intellect < GID->ReqIntellect)
+                    {
+                        return;
+                    }
+                }
+            }
+            player->UseItem(itemDataObject);
         }
-    
+    }
 }
 
 void UInventoryItemWidget::OnItemHovered()
 {
     UE_LOG(LogTemp, Warning, TEXT("Item hovered"));
-
     if (!GearInfoWidget || !itemDataObject) return;
-
     if(GearInfoWidget->GetVisibility() == ESlateVisibility::Collapsed || GearInfoWidget->GetVisibility() == ESlateVisibility::Hidden)
     {
         GearInfoWidget->SetVisibility(ESlateVisibility::Visible);
     }
-
     GearInfoWidget->SetInfo(itemDataObject);
 }
 

@@ -15,11 +15,14 @@ void UBuff_Ability_Creation::Execute()
 	{
 		if (APlayerCharacterState* PCS = player->GetPlayerCharacterState())
 		{
-			if (UAbility* Ability = NewObject<UAbility>(PCS, AbilityToSpawn))
+			if (AbilityToSpawn)
 			{
-				Ability->AbilityActivationType = EAbilityActivationType::Event;
-				//int Pos = PCS->LearnedAbilities.Find(Ability);
-				PCS->LearnedAbilities.AddUnique(Ability);
+				if (UAbility* Ability = NewObject<UAbility>(PCS, AbilityToSpawn))
+				{
+					Ability->AbilityActivationType = EAbilityActivationType::Event;
+					//int Pos = PCS->LearnedAbilities.Find(Ability);
+					PCS->LearnedAbilities.AddUnique(Ability);
+				}
 			}
 		}
 	}

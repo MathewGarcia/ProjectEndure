@@ -5,9 +5,6 @@
 
 #include "GearItemData.h"
 #include "GearItemInstanceSaveData.h"
-#include "InGamePlayerHUD.h"
-#include "Item.h"
-#include "LevelUpWidget.h"
 #include "PlayerCharacter.h"
 #include "PlayerCharacterState.h"
 
@@ -19,7 +16,7 @@ void UGearItemInstance::InitializeStats()
 		Strength = GearItemData->Strength;
 		Intellect = GearItemData->Intellect;
 		Stamina = GearItemData->Stamina;
-		Quantity = GearItemData->Quantity;
+		Quantity = ItemData->Quantity;
 		Health = GearItemData->Health;
 		PoiseProtection = GearItemData->PoiseProtection;
 		WaterResistance = GearItemData->WaterResistance;
@@ -110,7 +107,7 @@ bool UGearItemInstance::bCanUpgrade()
 					ItemsToRemove.Empty();
 					return false;
 				}
-				ItemsToRemove.Add(item, IronFragmentResourceAmt);
+				ItemsToRemove.Add(item, IronStoneResourceAmt);
 
 			}
 			else if (item->ItemData->ItemName.ToString().Equals("Elemental Core"))
@@ -120,7 +117,7 @@ bool UGearItemInstance::bCanUpgrade()
 					ItemsToRemove.Empty();
 					return false;
 				}
-				ItemsToRemove.Add(item, IronFragmentResourceAmt);
+				ItemsToRemove.Add(item, ElementalCoreResourceAmt);
 			}
 		}
 		if (pcs->playerStats.totalEXPGained < EXPNeeded)
@@ -160,46 +157,9 @@ void UGearItemInstance::SeralizeGearItem(FGearItemInstanceSaveData& Output)
 		Output.IronStoneResourceAmt = IronStoneResourceAmt;
 		Output.ElementalCoreResourceAmt = ElementalCoreResourceAmt;
 		Output.EXPNeeded = EXPNeeded;
-		Output.Quantity = Quantity;
+		Output.Quantity = ItemData->Quantity;
 	}
-	/*
-	 * 	FString GearID;
-	int Strength = 0;
-	int Intellect = 0;
-	int GearLevel = 0;
-	int Stamina = 0;
-	int Health = 0;
-	float PhysicalProtection = 0.f;
-	float PoiseProtection = 0.f;
-
-	UPROPERTY(EditAnywhere, Category = "Gear Stats")
-	float WaterResistance = 0.0; //slows enemy, if hit with fire the enemy will steam. Burning them causing a dot.
-
-	UPROPERTY(EditAnywhere, Category = "Gear Stats")
-	float FireResistance = 0.0; //Burn debuff is added causing the player to become weaker to physical attacks.
-
-	UPROPERTY(EditAnywhere, Category = "Gear Stats")
-	float LighteningResistance = 0.0; //cause a lightening strike to come down and stun the player.
-
-	UPROPERTY(EditAnywhere, Category = "Gear Stats")
-	float ShadowResistance = 0.0; //Shadow hand appear attempting to strike the enemy.
-
-	UPROPERTY(EditAnywhere, Category = "Gear Stats")
-	float BleedResistance = 0.0; //Bleed causing 2x damage.
-
-	UPROPERTY(EditAnywhere, Category = "Gear Stats")
-	float PoisonResistance = 0.0; //Damage over time is caused.
-
-	int IronCoreResourceAmt = 0;
-
-	int IronFragmentResourceAmt = 0;
-
-	int IronStoneResourceAmt = 0;
-
-	int ElementalCoreResourceAmt = 0;
-
-	int EXPNeeded = 0;
-	 */
+	
 }
 
 void UGearItemInstance::InitStatsAccordingToLevel(int Level)

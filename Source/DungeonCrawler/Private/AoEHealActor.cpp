@@ -17,7 +17,6 @@ AAoEHealActor::AAoEHealActor()
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
-
 	BoxComponent = CreateDefaultSubobject<UBoxComponent>(TEXT("Box Component"));
 	RootComponent = BoxComponent;
 
@@ -32,14 +31,16 @@ void AAoEHealActor::BeginOverlap(UPrimitiveComponent* OverlappedComponent, AActo
 
 	if(OtherActor)
 	{
-		if(APlayerCharacter*player = Cast<APlayerCharacter>(OtherActor))
+		if(APlayerCharacter* player = Cast<APlayerCharacter>(OtherActor))
 		{
 
-			if (OwningObject) {
+			if (OwningObject && player)
+			{
 				if (!GetWorldTimerManager().IsTimerActive(FHealingTimer))
 				{
 					GetWorldTimerManager().SetTimer(FHealingTimer, [this, player]()
 						{
+							if (!player || !OwningObject) return;
 							if (APlayerCharacterState* PCS = player->GetPlayerCharacterState())
 							{
 								PCS->playerStats.currentHealth += OwningObject->HealingAmount;
@@ -48,11 +49,12 @@ void AAoEHealActor::BeginOverlap(UPrimitiveComponent* OverlappedComponent, AActo
 								if (APlayerController* PC = Cast<APlayerController>(player->GetController())) {
 									if (AInGamePlayerHUD* PlayerHUD = Cast<AInGamePlayerHUD>(PC->GetHUD()))
 									{
-										if (PlayerHUD->GetMainUIWidget())
+										if (UMainPlayerWidget* MainWidget = PlayerHUD->GetMainUIWidget())
 										{
-											PlayerHUD->GetMainUIWidget()->UpdateProgressBar("Health", PCS->playerStats.currentHealth / PCS->GetTotalHealth());
-											PlayerHUD->GetMainUIWidget()->UpdateProgressBar("Mana", PCS->playerStats.currentMana / PCS->GetTotalMana());
-
+											float healthRatio = PCS->GetTotalHealth() > 0 ? PCS->playerStats.currentHealth / PCS->GetTotalHealth() : 0.f;
+											float manaRatio = PCS->GetTotalMana() > 0 ? PCS->playerStats.currentMana / PCS->GetTotalMana() : 0.f;
+											MainWidget->UpdateProgressBar("Health", healthRatio);
+											MainWidget->UpdateProgressBar("Mana", manaRatio);
 										}
 									}
 								}
@@ -88,8 +90,11 @@ void AAoEHealActor::BeginPlay()
 {
 	Super::BeginPlay();
 
-	BoxComponent->OnComponentBeginOverlap.AddDynamic(this, &AAoEHealActor::BeginOverlap);
-	BoxComponent->OnComponentEndOverlap.AddDynamic(this, &AAoEHealActor::OverlapEnd);
+	if (BoxComponent)
+	{
+		BoxComponent->OnComponentBeginOverlap.AddDynamic(this, &AAoEHealActor::BeginOverlap);
+		BoxComponent->OnComponentEndOverlap.AddDynamic(this, &AAoEHealActor::OverlapEnd);
+	}
 	
 }
 

@@ -203,78 +203,76 @@ void APlayerCharacter::SetAttackingWeapon(AWeapon* AttackWeapon)
 
 void APlayerCharacter::DecreaseElementalProgression()
 {
-	if (!SoftPCS.IsValid()) return;
+    if (!SoftPCS.IsValid() || !PlayerHUD || !PlayerHUD->GetMainUIWidget()) return;
 
-	TWeakObjectPtr<APlayerCharacter> SafePlayer = this;
-	GetWorld()->GetTimerManager().SetTimer(FDecreaseElementalTimerHandle, [SafePlayer]
-	{
-			if (!SafePlayer.IsValid()) return;
-			if (APlayerCharacter* localthis = SafePlayer.Get()) {
-				if (APlayerCharacterState* PCS = localthis->SoftPCS.Get())
-				{
-					int32 max = 6;
-					int32 currentSkips = 0;
+    TWeakObjectPtr<APlayerCharacter> SafePlayer = this;
+    GetWorld()->GetTimerManager().SetTimer(FDecreaseElementalTimerHandle, [SafePlayer]
+    {
+        if (!SafePlayer.IsValid()) return;
+        if (APlayerCharacter* localthis = SafePlayer.Get()) {
+            if (!localthis->PlayerHUD || !localthis->PlayerHUD->GetMainUIWidget()) return;
+            if (APlayerCharacterState* PCS = localthis->SoftPCS.Get())
+            {
+                int32 max = 6;
+                int32 currentSkips = 0;
 
-					for (auto& pair : PCS->playerStats.ElementProgression)
-					{
-						if (pair.Value <= 0)
-						{
-							++currentSkips;
-							localthis->PlayerHUD->GetMainUIWidget()->SetHorizontalBoxVisibility(pair.Key, ESlateVisibility::Hidden);
-							continue;
-						}
+                for (auto& pair : PCS->playerStats.ElementProgression)
+                {
+                    if (pair.Value <= 0)
+                    {
+                        ++currentSkips;
+                        localthis->PlayerHUD->GetMainUIWidget()->SetHorizontalBoxVisibility(pair.Key, ESlateVisibility::Hidden);
+                        continue;
+                    }
 
-						if (localthis->PlayerHUD)
-						{
-							localthis->PlayerHUD->GetMainUIWidget()->SetHorizontalBoxVisibility(pair.Key, ESlateVisibility::Visible);
+                    if (localthis->PlayerHUD && localthis->PlayerHUD->GetMainUIWidget())
+                    {
+                        localthis->PlayerHUD->GetMainUIWidget()->SetHorizontalBoxVisibility(pair.Key, ESlateVisibility::Visible);
 
-							pair.Value -= 0.05;
-							pair.Value = FMath::Clamp(pair.Value, 0, 1.f);
+                        pair.Value -= 0.05;
+                        pair.Value = FMath::Clamp(pair.Value, 0, 1.f);
 
-							FName ProgressBarName = "";
-							switch (pair.Key)
-							{
-							case EElementTypes::Fire:
-								ProgressBarName = "Fire";
-								break;
-							case EElementTypes::Water:
-								ProgressBarName = "Water";
-								break;
-							case EElementTypes::Shadow:
-								ProgressBarName = "Shadow";
-								break;
-							case EElementTypes::Lightening:
-								ProgressBarName = "Lightning";
-								break;
-							case EElementTypes::Bleed:
-								ProgressBarName = "Bleed";
-								break;
-							case EElementTypes::Poison:
-								ProgressBarName = "Poison";
-								break;
-							case EElementTypes::NONE:
-								break;
+                        FName ProgressBarName = "";
+                        switch (pair.Key)
+                        {
+                        case EElementTypes::Fire:
+                            ProgressBarName = "Fire";
+                            break;
+                        case EElementTypes::Water:
+                            ProgressBarName = "Water";
+                            break;
+                        case EElementTypes::Shadow:
+                            ProgressBarName = "Shadow";
+                            break;
+                        case EElementTypes::Lightening:
+                            ProgressBarName = "Lightning";
+                            break;
+                        case EElementTypes::Bleed:
+                            ProgressBarName = "Bleed";
+                            break;
+                        case EElementTypes::Poison:
+                            ProgressBarName = "Poison";
+                            break;
+                        case EElementTypes::NONE:
+                            break;
+                        default:
+                            break;
+                        }
+                        if (localthis->PlayerHUD && localthis->PlayerHUD->GetMainUIWidget())
+                        {
+                            localthis->PlayerHUD->GetMainUIWidget()->UpdateProgressBar(ProgressBarName, pair.Value);
+                        }
+                    }
+                }
 
-							default:
-								break;
-							}
+                if (currentSkips >= max)
+                {
+                    localthis->GetWorld()->GetTimerManager().ClearTimer(localthis->FDecreaseElementalTimerHandle);
+                }
+            }
+        }
 
-							localthis->PlayerHUD->GetMainUIWidget()->UpdateProgressBar(ProgressBarName, pair.Value);
-
-						}
-					}
-
-					if (currentSkips >= max)
-					{
-						localthis->GetWorld()->GetTimerManager().ClearTimer(localthis->FDecreaseElementalTimerHandle);
-					}
-				}
-			}
-
-	}, 2.f, true);
-
-
-
+    }, 2.f, true);
 }
 
 void APlayerCharacter::DropItem()
@@ -316,10 +314,9 @@ void APlayerCharacter::DropItem()
 
 void APlayerCharacter::updateGearSlot(UItemDataObject* Item)
 {
-	if (!Item) return;
-	if (!Item->ItemData) return;
-	EGearType GearType = EGearType::none;
-	if(UGearItemInstance*GearItemInstance = Cast<UGearItemInstance>(Item))
+    if (!Item || !Item->ItemData || !PlayerHUD || !PlayerHUD->GetMainUIWidget() || !PlayerHUD->GetMainUIWidget()->EquipmentUI) return;
+    EGearType GearType = EGearType::none;
+    if(UGearItemInstance*GearItemInstance = Cast<UGearItemInstance>(Item))
 	{
 		if (UGearItemData*GearItemData = Cast<UGearItemData>(GearItemInstance->ItemData)) {
 			GearType = GearItemData->GearType;
@@ -334,48 +331,36 @@ void APlayerCharacter::updateGearSlot(UItemDataObject* Item)
 	}
 
 	
-	if (PlayerHUD) {
-		switch (GearType)
-		{
-		case EGearType::none:
-
-			break;
-		case EGearType::Head:
-			if (PlayerHUD->GetMainUIWidget() && PlayerHUD->GetMainUIWidget()->EquipmentUI && PlayerHUD->GetMainUIWidget()->EquipmentUI->HeadGearSlot) {
-				PlayerHUD->GetMainUIWidget()->EquipmentUI->HeadGearSlot->UpdateGearSlot(Item);
-			}
-
-			
-			break;
-		case EGearType::LHand:
-
-				if (PlayerHUD->GetMainUIWidget() && PlayerHUD->GetMainUIWidget()->EquipmentUI && PlayerHUD->GetMainUIWidget()->EquipmentUI->LHandGearSlot) {
-					PlayerHUD->GetMainUIWidget()->EquipmentUI->LHandGearSlot->UpdateGearSlot(Item);
-				}
-
-			
-			break;
-		case EGearType::RHand:
-			if (PlayerHUD->GetMainUIWidget() && PlayerHUD->GetMainUIWidget()->EquipmentUI && PlayerHUD->GetMainUIWidget()->EquipmentUI->RHandGearSlot) {
-				PlayerHUD->GetMainUIWidget()->EquipmentUI->RHandGearSlot->UpdateGearSlot(Item);
-			}
-			break;
-		case EGearType::Chest:
-	
-				if (PlayerHUD->GetMainUIWidget() && PlayerHUD->GetMainUIWidget()->EquipmentUI && PlayerHUD->GetMainUIWidget()->EquipmentUI->ChestGearSlot) {
-					PlayerHUD->GetMainUIWidget()->EquipmentUI->ChestGearSlot->UpdateGearSlot(Item);
-				}
-			break;
-		case EGearType::Legs:
-
-			if (PlayerHUD->GetMainUIWidget() && PlayerHUD->GetMainUIWidget()->EquipmentUI && PlayerHUD->GetMainUIWidget()->EquipmentUI->LegsGearSlot) {
-				PlayerHUD->GetMainUIWidget()->EquipmentUI->LegsGearSlot->UpdateGearSlot(Item);
-			}
-
-
-			break;
-		default: break;
+	switch (GearType)
+	{
+	case EGearType::none:
+		break;
+	case EGearType::Head:
+		if (PlayerHUD->GetMainUIWidget()->EquipmentUI->HeadGearSlot) {
+			PlayerHUD->GetMainUIWidget()->EquipmentUI->HeadGearSlot->UpdateGearSlot(Item);
 		}
+		break;
+	case EGearType::LHand:
+		if (PlayerHUD->GetMainUIWidget()->EquipmentUI->LHandGearSlot) {
+			PlayerHUD->GetMainUIWidget()->EquipmentUI->LHandGearSlot->UpdateGearSlot(Item);
+		}
+		break;
+	case EGearType::RHand:
+		if (PlayerHUD->GetMainUIWidget()->EquipmentUI->RHandGearSlot) {
+			PlayerHUD->GetMainUIWidget()->EquipmentUI->RHandGearSlot->UpdateGearSlot(Item);
+		}
+		break;
+	case EGearType::Chest:
+		if (PlayerHUD->GetMainUIWidget()->EquipmentUI->ChestGearSlot) {
+			PlayerHUD->GetMainUIWidget()->EquipmentUI->ChestGearSlot->UpdateGearSlot(Item);
+		}
+		break;
+	case EGearType::Legs:
+		if (PlayerHUD->GetMainUIWidget()->EquipmentUI->LegsGearSlot) {
+			PlayerHUD->GetMainUIWidget()->EquipmentUI->LegsGearSlot->UpdateGearSlot(Item);
+		}
+		break;
+	default: break;
 	}
 }
 
@@ -549,7 +534,6 @@ void APlayerCharacter::UpdateEXPWidget()
 		}
 	}
 }
-
 
 // Called when the game starts or when spawned
 void APlayerCharacter::BeginPlay()
@@ -1157,7 +1141,7 @@ void APlayerCharacter::tryEquipGear(AItem* GearToEquip, const EGearType& GearTyp
 
 	if (!GearToEquip) { UE_LOG(LogTemp, Error, TEXT("Gear To Equip is nullptr")) return; };
 
-	//if it is a bow we are tryiing to equip (which is the left hand) we need to override it so that the player can't equip a sword in the right hand and a bow in the left hand.
+	//if it is a bow we are trying to equip (which is the left hand) we need to override it so that the player can't equip a sword in the right hand and a bow in the left hand.
 
 	switch (GearToEquip->ItemType)
 	{
@@ -1277,11 +1261,12 @@ void APlayerCharacter::EquipGear(AItem* GearToEquip, const EGearType& GearType, 
 
 	default: break;
 	}
-
-	if (PCS) {
+	if (PCS)
+	{
 		PCS->PlayerGear.Add(GearType, GearToEquip);
 		updateGearSlot(ItemInstance);
 	}
+
 
 
 }
@@ -1348,45 +1333,63 @@ TArray<EGearType> APlayerCharacter::GetValidSlotsForWeapon(EWeaponType WeaponTyp
 
 void APlayerCharacter::RemoveItemFromSlot(EGearType Slot)
 {
-	if (APlayerCharacterState* PCS = SoftPCS.Get())
-	{
-		//if the item is not nullptr create an FItemData and add it to the inventory.
-		if (AItem** itemReturned = PCS->PlayerGear.Find(Slot))
-		{
-			if (AItem* Gear = *itemReturned)
-			{
-				Gear->PickUp(this);
-				PCS->PlayerGear.Remove(Slot);
-			}
-		}
-	}
+    if (APlayerCharacterState* PCS = SoftPCS.Get())
+    {
+        if (AItem** itemReturned = PCS->PlayerGear.Find(Slot))
+        {
+            if (AItem* Gear = *itemReturned)
+            {
+                // Add the item instance back to inventory if possible
+                if (Slot == EGearType::Head || Slot == EGearType::Chest || Slot == EGearType::Legs)
+                {
+                    if (UGearItemInstance** GearItemInstance = PCS->PlayerGearInstances.Find(Slot))
+                    {
+                        PCS->AddItemToInventory(*GearItemInstance);
+                        PCS->PlayerGearInstances.Remove(Slot);
+                    }
+                }
+                else if (Slot == EGearType::RHand || Slot == EGearType::LHand)
+                {
+                    if (AWeapon* Weapon = Cast<AWeapon>(Gear))
+                    {
+
+						if (Weapon->WeaponInstance)
+						{
+							PCS->AddItemToInventory(Weapon->WeaponInstance);
+							Weapon->Destroy();
+
+						}
+                    }
+                }
+                PCS->PlayerGear.Remove(Slot);
+            }
+        }
+    }
 }
 
 float APlayerCharacter::GetPlayerMontageTime()
 {
-	float CurrentMontagePosition = -1.f;
-	if(GetMesh()->GetAnimInstance())
+    float CurrentMontagePosition = -1.f;
+    if(GetMesh() && GetMesh()->GetAnimInstance())
 	{
-		if (GetMesh()->GetAnimInstance()->Montage_IsPlaying(OneHandMontages))
-		{
-			CurrentMontagePosition = GetMesh()->GetAnimInstance()->Montage_GetPosition(OneHandMontages);
-		}
-		else if (GetMesh()->GetAnimInstance()->Montage_IsPlaying(TwoHandMontages))
-		{
-			CurrentMontagePosition = GetMesh()->GetAnimInstance()->Montage_GetPosition(TwoHandMontages);
-		}
-		else if (GetMesh()->GetAnimInstance()->Montage_IsPlaying(DodgeMontages))
-		{
-			CurrentMontagePosition = GetMesh()->GetAnimInstance()->Montage_GetPosition(DodgeMontages);
-		}
-		else if (GetMesh()->GetAnimInstance()->Montage_IsPlaying(MiscMontages))
-		{
-			CurrentMontagePosition = GetMesh()->GetAnimInstance()->Montage_GetPosition(MiscMontages);
-
-		}
-	}
-
-	return CurrentMontagePosition;
+        if (GetMesh()->GetAnimInstance()->Montage_IsPlaying(OneHandMontages))
+        {
+            CurrentMontagePosition = GetMesh()->GetAnimInstance()->Montage_GetPosition(OneHandMontages);
+        }
+        else if (GetMesh()->GetAnimInstance()->Montage_IsPlaying(TwoHandMontages))
+        {
+            CurrentMontagePosition = GetMesh()->GetAnimInstance()->Montage_GetPosition(TwoHandMontages);
+        }
+        else if (GetMesh()->GetAnimInstance()->Montage_IsPlaying(DodgeMontages))
+        {
+            CurrentMontagePosition = GetMesh()->GetAnimInstance()->Montage_GetPosition(DodgeMontages);
+        }
+        else if (GetMesh()->GetAnimInstance()->Montage_IsPlaying(MiscMontages))
+        {
+            CurrentMontagePosition = GetMesh()->GetAnimInstance()->Montage_GetPosition(MiscMontages);
+        }
+    }
+    return CurrentMontagePosition;
 }
 
 void APlayerCharacter::PlayerStunned()
@@ -1547,12 +1550,24 @@ void APlayerCharacter::DetermineHitAnimation(const float& poise)
 bool APlayerCharacter::IsBackStab(AEnemy* Enemy)
 {
 	if (!Enemy) return false;
-	FVector EnemyToPlayer = (GetActorLocation() - Enemy->GetActorLocation()).GetSafeNormal();
-	float DotResult = FVector::DotProduct(EnemyToPlayer, Enemy->GetActorForwardVector()); //should be negative for behind.
-	float threshold = FMath::Cos(FMath::DegreesToRadians(150.f));
 
-	return !Enemy->GetWorld()->GetTimerManager().IsTimerActive(Enemy->FBackstabTimer) && DotResult < threshold && Enemy->MiscMontages->IsValidSectionName("BackstabRecieved");
+	// Check if backstab timer is still active (prevent rapid backstabs)
+	if (Enemy->GetWorld()->GetTimerManager().IsTimerActive(Enemy->FBackstabTimer)) {
+		return false;
+	}
+
+	FVector EnemyToPlayer = (GetActorLocation() - Enemy->GetActorLocation()).GetSafeNormal();
+	float DotResult = FVector::DotProduct(EnemyToPlayer, Enemy->GetActorForwardVector());
+	float threshold = FMath::Cos(FMath::DegreesToRadians(150.f)); // About -0.866
+
+	UE_LOG(LogTemp, Warning, TEXT("Backstab check - Dot: %f, Threshold: %f, Behind: %s"),
+		DotResult, threshold, (DotResult < threshold) ? TEXT("YES") : TEXT("NO"));
+
+	return DotResult < threshold &&
+		Enemy->MiscMontages &&
+		Enemy->MiscMontages->IsValidSectionName("BackstabRecieved");
 }
+
 
 bool APlayerCharacter::IsParry(AEnemy* Enemy)
 {
@@ -1642,7 +1657,6 @@ void APlayerCharacter::ToggleWeaponType()
 				if (Weapon->OneHandBlendSpace)
 					PlayerAnimInstance->CurrentWeaponBlendSpace = Weapon->TwoHandBlendSpace;
 				break;
-
 			case EWeaponType::TwoHand:
 				Weapon->WeaponType = EWeaponType::OneHand;
 				if (Weapon->TwoHandBlendSpace)
@@ -1698,7 +1712,7 @@ FVector APlayerCharacter::DeprojectScreen(AWeapon*Weapon)
 	FHitResult hitResult;
 	FCollisionQueryParams TraceParams(SCENE_QUERY_STAT(AimTrace), true, this);
 	FVector TargetLocation;
-	FVector End = WorldOrigin + (WorldDirection * 2000);
+	FVector End = WorldOrigin + (WorldDirection * 2000.f);
 	if (GetWorld()->LineTraceSingleByChannel(hitResult, WorldOrigin, End, ECC_Pawn, TraceParams))
 	{
 		TargetLocation = hitResult.ImpactPoint;
@@ -2030,8 +2044,8 @@ void APlayerCharacter::ResetPlayer(APlayerCharacterState* playerCharacterState)
 	playerCharacterState->playerStats.currentMana = playerCharacterState->GetTotalMana();
 	playerCharacterState->playerStats.currentFireProgression = 0;
 	playerCharacterState->playerStats.currentLighteningProgression = 0;
-	playerCharacterState->playerStats.currentPoisonResistance = 0;
-	playerCharacterState->playerStats.currentBleedResistance = 0;
+ playerCharacterState->playerStats.currentPoisonResistance = 0;
+ playerCharacterState->playerStats.currentBleedResistance = 0;
 	playerCharacterState->playerStats.currentShadowProgression = 0;
 	playerCharacterState->playerStats.currentWaterProgression = 0;
 	
@@ -2141,11 +2155,11 @@ void APlayerCharacter::LoadFromGameInstance()
 			PCS->ReBindDelegates();
 			PCS->SetCurrentLives(GI->GICurrentLives);
 
-			if(ADungeonCrawlerGM*GM = GetWorld()->GetAuthGameMode<ADungeonCrawlerGM>())
+			if (ADungeonCrawlerGM* GM = GetWorld()->GetAuthGameMode<ADungeonCrawlerGM>())
 			{
 				GM->SetRoundCount(GI->GIRound);
 			}
-			for(FQuest_SaveData& QuestSaveData: GI->GICurrentQuestSaveData)
+			for (FQuest_SaveData& QuestSaveData : GI->GICurrentQuestSaveData)
 			{
 				QuestSaveData.Init(PCS);
 			}
@@ -2166,7 +2180,7 @@ void APlayerCharacter::LoadFromGameInstance()
 						PCS->DeserializeAbilities();
 					}
 				}
-				if(UTalentTreeWidget*TalentTreeWidget = PlayerHUD->TalentTreeWidget)
+				if (UTalentTreeWidget* TalentTreeWidget = PlayerHUD->TalentTreeWidget)
 				{
 					TalentTreeWidget->CheckAllRows();
 					TalentTreeWidget->CheckLearnedAbilities();
@@ -2178,7 +2192,7 @@ void APlayerCharacter::LoadFromGameInstance()
 			{
 				if (UDataAsset** SavedWeaponDA = GI->AllItems.Find(GI->GICurrentWeapon.WeaponID))
 				{
-					if (UWeaponItemData* WeaponItemData = Cast<UWeaponItemData>(*SavedWeaponDA))
+					if (UWeaponItemData* WeaponItemData = Cast<UWeaponItemData>(SavedWeaponDA[0]))
 					{
 						FActorSpawnParameters params;
 						params.Owner = PCS;
@@ -2186,7 +2200,6 @@ void APlayerCharacter::LoadFromGameInstance()
 						if (AWeapon* SavedWeapon = GetWorld()->SpawnActor<AWeapon>(WeaponItemData->ItemToSpawn, FVector::ZeroVector, FRotator::ZeroRotator, params))
 						{
 							SavedWeapon->InitWeapon();
-							//SavedWeapon->WeaponInstance->SetQuantity(WeaponItemData->Quantity);
 							GI->GICurrentWeapon.InitWeapon(SavedWeapon->WeaponInstance);
 							tryEquipGear(SavedWeapon, WeaponItemData->GearType, SavedWeapon->WeaponInstance);
 							UE_LOG(LogTemp, Warning, TEXT("Loaded from Saved Weapon"));
@@ -2199,7 +2212,7 @@ void APlayerCharacter::LoadFromGameInstance()
 			{
 				if (UDataAsset** GearDA = GI->AllItems.Find(Data.GearID))
 				{
-					if (UGearItemData* GearItemData = Cast<UGearItemData>(*GearDA))
+					if (UGearItemData* GearItemData = Cast<UGearItemData>(GearDA[0]))
 					{
 						if (GearItemData->ItemToSpawn) {
 							if (AItem* GearToEquip = GearItemData->ItemToSpawn->GetDefaultObject<AItem>()) {
@@ -2207,31 +2220,29 @@ void APlayerCharacter::LoadFromGameInstance()
 								{
 									GearItemInstance->ItemData = GearItemData;
 									Data.InitGear(GearItemInstance);
-									//GearItemInstance->SetQuantity(GearItemData->Quantity);
 									tryEquipGear(GearToEquip, GearItemData->GearType, GearItemInstance);
 
 								}
 							}
 						}
-
 					}
 
 				}
 			}
+
 			//reload inventory
 			//check for weapons
-			if(!GI->GIInventoryWeapons.IsEmpty())
+			if (!GI->GIInventoryWeapons.IsEmpty())
 			{
-				for(FWeaponInstanceSaveData& Data : GI->GIInventoryWeapons)
+				for (FWeaponInstanceSaveData& Data : GI->GIInventoryWeapons)
 				{
-					if(UDataAsset**WeaponDA = GI->AllItems.Find(Data.WeaponID))
+					if (UDataAsset** WeaponDA = GI->AllItems.Find(Data.WeaponID))
 					{
-						if(UWeaponItemData*WeaponItemData = Cast<UWeaponItemData>(*WeaponDA))
+						if (UWeaponItemData* WeaponItemData = Cast<UWeaponItemData>(WeaponDA[0]))
 						{
 							if (UWeaponInstance* WeaponInstance = NewObject<UWeaponInstance>(PCS))
 							{
 								WeaponInstance->ItemData = WeaponItemData;
-								//WeaponInstance->SetQuantity(WeaponItemData->Quantity);
 								Data.InitWeapon(WeaponInstance);
 								PCS->AddItemToInventory(WeaponInstance);
 							}
@@ -2248,12 +2259,11 @@ void APlayerCharacter::LoadFromGameInstance()
 				{
 					if (UDataAsset** GearDA = GI->AllItems.Find(Data.GearID))
 					{
-						if (UGearItemData* GearItemData = Cast<UGearItemData>(*GearDA))
+						if (UGearItemData* GearItemData = Cast<UGearItemData>(GearDA[0]))
 						{
-							if (UGearItemInstance* GearItemInstance= NewObject<UGearItemInstance>(PCS))
+							if (UGearItemInstance* GearItemInstance = NewObject<UGearItemInstance>(PCS))
 							{
 								GearItemInstance->ItemData = GearItemData;
-								//GearItemInstance->SetQuantity(GearItemData->Quantity);
 								Data.InitGear(GearItemInstance);
 								PCS->AddItemToInventory(GearItemInstance);
 
@@ -2268,23 +2278,26 @@ void APlayerCharacter::LoadFromGameInstance()
 			//check for regular items
 			if (!GI->GIInventory.IsEmpty())
 			{
-				for(FItemInstance& Data : GI->GIInventory)
+				for (FItemInstance& Data : GI->GIInventory)
 				{
-					if(UDataAsset**ItemDA = GI->AllItems.Find(Data.ItemDataID))
+					if (UDataAsset** ItemDA = GI->AllItems.Find(Data.ItemDataID))
 					{
-						if(UItemDataAsset*ItemData = Cast<UItemDataAsset>(*ItemDA))
+						if (UItemDataAsset* ItemData = Cast<UItemDataAsset>(ItemDA[0]))
 						{
-							if(UItemDataObject*ItemDataObject = NewObject<UItemDataObject>(PCS))
+							if (UItemDataObject* ItemDataObject = NewObject<UItemDataObject>(PCS))
 							{
 								ItemDataObject->ItemData = ItemData;
 								ItemDataObject->SetQuantity(Data.Quantity);
 								PCS->AddItemToInventory(ItemDataObject);
+
 							}
 						}
 					}
 				}
 			}
+
 		}
+
 	}
 }
 
@@ -2342,7 +2355,7 @@ void APlayerCharacter::LoadFromSavedGame(APlayerCharacterState* PCS, UMainGameIn
 	{
 		if (UDataAsset** SavedWeaponDA = GI->AllItems.Find(Save->SavedWeapon.WeaponID))
 		{
-			if (UWeaponItemData* WeaponItemData = Cast<UWeaponItemData>(*SavedWeaponDA))
+			if (UWeaponItemData* WeaponItemData = Cast<UWeaponItemData>(SavedWeaponDA[0]))
 			{
 				FActorSpawnParameters params;
 				params.Owner = PCS;
@@ -2363,7 +2376,7 @@ void APlayerCharacter::LoadFromSavedGame(APlayerCharacterState* PCS, UMainGameIn
 	{
 		if (UDataAsset** GearDA = GI->AllItems.Find(Data.GearID))
 		{
-			if (UGearItemData* GearItemData = Cast<UGearItemData>(*GearDA))
+			if (UGearItemData* GearItemData = Cast<UGearItemData>(GearDA[0]))
 			{
 				if (GearItemData->ItemToSpawn) {
 
@@ -2372,7 +2385,6 @@ void APlayerCharacter::LoadFromSavedGame(APlayerCharacterState* PCS, UMainGameIn
 						{
 							GearItemInstance->ItemData = GearItemData;
 							Data.InitGear(GearItemInstance);
-							//GearItemInstance->SetQuantity(GearItemData->Quantity);
 							tryEquipGear(GearToEquip, GearItemData->GearType, GearItemInstance);
 
 						}
@@ -2391,13 +2403,12 @@ void APlayerCharacter::LoadFromSavedGame(APlayerCharacterState* PCS, UMainGameIn
 		{
 			if (UDataAsset** WeaponDA = GI->AllItems.Find(Data.WeaponID))
 			{
-				if (UWeaponItemData* WeaponItemData = Cast<UWeaponItemData>(*WeaponDA))
+				if (UWeaponItemData* WeaponItemData = Cast<UWeaponItemData>(WeaponDA[0]))
 				{
 					if (UWeaponInstance* WeaponInstance = NewObject<UWeaponInstance>(PCS))
 					{
 						WeaponInstance->ItemData = WeaponItemData;
 						Data.InitWeapon(WeaponInstance);
-						//WeaponInstance->SetQuantity(WeaponItemData->Quantity);
 						PCS->AddItemToInventory(WeaponInstance);
 					}
 
@@ -2413,13 +2424,12 @@ void APlayerCharacter::LoadFromSavedGame(APlayerCharacterState* PCS, UMainGameIn
 		{
 			if (UDataAsset** GearDA = GI->AllItems.Find(Data.GearID))
 			{
-				if (UGearItemData* GearItemData = Cast<UGearItemData>(*GearDA))
+				if (UGearItemData* GearItemData = Cast<UGearItemData>(GearDA[0]))
 				{
 					if (UGearItemInstance* GearItemInstance = NewObject<UGearItemInstance>(PCS))
 					{
 						GearItemInstance->ItemData = GearItemData;
 						Data.InitGear(GearItemInstance);
-					//	GearItemInstance->SetQuantity(GearItemData->Quantity);
 						PCS->AddItemToInventory(GearItemInstance);
 
 					}
@@ -2437,12 +2447,11 @@ void APlayerCharacter::LoadFromSavedGame(APlayerCharacterState* PCS, UMainGameIn
 		{
 			if (UDataAsset** ItemDA = GI->AllItems.Find(Data.ItemDataID))
 			{
-				if (UItemDataAsset* ItemData = Cast<UItemDataAsset>(*ItemDA))
+				if (UItemDataAsset* ItemData = Cast<UItemDataAsset>(ItemDA[0]))
 				{
 					if (UItemDataObject* ItemDataObject = NewObject<UItemDataObject>(PCS))
 					{
 						ItemDataObject->ItemData = ItemData;
-						ItemDataObject->SetQuantity(Data.Quantity);
 						PCS->AddItemToInventory(ItemDataObject);
 
 					}
@@ -2458,7 +2467,6 @@ void APlayerCharacter::ResetState()
 {
 	ps = PlayerStates::NONE;
 }
-
 
 // Called every frame
 void APlayerCharacter::Tick(float DeltaTime)
@@ -2508,76 +2516,68 @@ void APlayerCharacter::Tick(float DeltaTime)
 	{
 		ResetCameraPosition(DeltaTime);
 	}
-
-	if(bIsHolding)
+    if(bIsHolding)
 	{
 		BowPower += 0.08;
 		BowPower = FMath::Clamp(BowPower, 0.0f, 1.0f);
 	}
-
-	UPrimitiveComponent* Base = GetCharacterMovement()->CurrentFloor.HitResult.Component.Get();
-	if (Base && Base->GetBodyInstance())
-	{
-		UPhysicalMaterial* PhysMat = Base->GetBodyInstance()->GetSimplePhysicalMaterial();
-
-		if (PhysMat)
+	if (GetCharacterMovement()) {
+		UPrimitiveComponent* Base = GetCharacterMovement()->CurrentFloor.HitResult.Component.Get();
+		if (Base && Base->GetBodyInstance())
 		{
-
-			EPhysicalSurface SurfaceType = UPhysicalMaterial::DetermineSurfaceType(PhysMat);
-			MostRecentSurfaceType = SurfaceType;
-
-			if (SurfaceType == SURFACE_Water || SurfaceType == SURFACE_Lava || SurfaceType == SURFACE_Poison || SurfaceType == SURFACE_Blood)
+			UPhysicalMaterial* PhysMat = Base->GetBodyInstance()->GetSimplePhysicalMaterial();
+			if (PhysMat)
 			{
-				if (UMainGameInstance* MGI = Cast<UMainGameInstance>(GetWorld()->GetGameInstance())) {
-					ULiquidDataAsset* FinalResult = nullptr;
-					switch (SurfaceType)
-					{
-					case SurfaceType_Default:
-						break;
-					case SurfaceType1:
-						if(ULiquidDataAsset**Result =  MGI->LiquidDataAssetsMap.Find(EElementTypes::Water))
+				EPhysicalSurface SurfaceType = UPhysicalMaterial::DetermineSurfaceType(PhysMat);
+				MostRecentSurfaceType = SurfaceType;
+				if (SurfaceType == SURFACE_Water || SurfaceType == SURFACE_Lava || SurfaceType == SURFACE_Poison || SurfaceType == SURFACE_Blood)
+				{
+					if (UMainGameInstance* MGI = Cast<UMainGameInstance>(GetWorld()->GetGameInstance())) {
+						ULiquidDataAsset* FinalResult = nullptr;
+						switch (SurfaceType)
 						{
-							FinalResult = (*Result);
+						case SurfaceType_Default:
+							break;
+						case SurfaceType1:
+							if(ULiquidDataAsset**Result =  MGI->LiquidDataAssetsMap.Find(EElementTypes::Water))
+							{
+								FinalResult = (*Result);
+							}
+							break;
+						case SurfaceType2:
+							if (ULiquidDataAsset** Result = MGI->LiquidDataAssetsMap.Find(EElementTypes::Fire))
+							{
+								FinalResult = (*Result);
+							}
+							break;
+						case SurfaceType3:
+							if (ULiquidDataAsset** Result = MGI->LiquidDataAssetsMap.Find(EElementTypes::Poison))
+							{
+								FinalResult = (*Result);
+							}
+							break;
+						case SurfaceType4:
+							if (ULiquidDataAsset** Result = MGI->LiquidDataAssetsMap.Find(EElementTypes::Bleed))
+							{
+								FinalResult = (*Result);
+							}
+							break;
+						default:
+							break;
 						}
-						break;
-					case SurfaceType2:
-						if (ULiquidDataAsset** Result = MGI->LiquidDataAssetsMap.Find(EElementTypes::Fire))
-						{
-							FinalResult = (*Result);
-
+						if (FinalResult) {
+							CurrentLiquid = FinalResult;
+							LiquidEntered(FinalResult);
 						}
-						break;
-					case SurfaceType3:
-						if (ULiquidDataAsset** Result = MGI->LiquidDataAssetsMap.Find(EElementTypes::Poison))
-						{
-							FinalResult = (*Result);
-
-						}
-						break;
-					case SurfaceType4:
-						if (ULiquidDataAsset** Result = MGI->LiquidDataAssetsMap.Find(EElementTypes::Bleed))
-						{
-							FinalResult = (*Result);
-
-						}
-						break;
-					default:
-						break;
-					}
-					if (FinalResult) {
-						CurrentLiquid = FinalResult;
-						LiquidEntered(FinalResult);
 					}
 				}
-			}
-			else if(SurfaceType != SURFACE_Water || SurfaceType != SURFACE_Lava || SurfaceType != SURFACE_Poison || SurfaceType != SURFACE_Blood && CurrentLiquid)
-			{
-				LiquidExited(CurrentLiquid);
+				else if((SurfaceType != SURFACE_Water && SurfaceType != SURFACE_Lava && SurfaceType != SURFACE_Poison && SurfaceType != SURFACE_Blood) && CurrentLiquid)
+				{
+					LiquidExited(CurrentLiquid);
+				}
 			}
 		}
 	}
-
-
 }
 
 // Called to bind functionality to input
@@ -2694,11 +2694,13 @@ float APlayerCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Damag
 				ps = PlayerStates::DEAD;
 				PCS->UpdateLives(-1);
 				ShowLivesWidget();
-				for (const auto& pair : CurrentDebuffs)
-				{
-					if (UElementDebuff* Debuff = pair.Value; IsValid(Debuff))
+				if (!CurrentDebuffs.IsEmpty()) {
+					for (const auto& pair : CurrentDebuffs)
 					{
-						Debuff->EndBuff();
+						if (UElementDebuff* Debuff = pair.Value; IsValid(Debuff))
+						{
+							Debuff->EndBuff();
+						}
 					}
 				}
 				OnPlayerDeath.Broadcast();

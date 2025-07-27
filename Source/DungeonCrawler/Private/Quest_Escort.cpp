@@ -13,7 +13,9 @@ void UQuest_Escort::StartQuest_Implementation()
 {
 	Super::StartQuest_Implementation();
 
-	if(!QuestDataAsset || !OwningNPC)
+	UWorld* World = GetWorld();
+
+	if(!QuestDataAsset || !OwningNPC || !World)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Error getting quest data"));
 		return;
@@ -29,10 +31,10 @@ void UQuest_Escort::StartQuest_Implementation()
 		FRotator SpawnRotation = OwningNPC->GetActorRotation();
 		FActorSpawnParameters params;
 		params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
-				if (ANPC_Escort* EscortActor = GetWorld()->SpawnActor<ANPC_Escort>(DA_Quest_Escort->EscortNPC, SpawnLocation, SpawnRotation,params))
+				if (ANPC_Escort* EscortActor = World->SpawnActor<ANPC_Escort>(DA_Quest_Escort->EscortNPC, SpawnLocation, SpawnRotation,params))
 				{
 					EscortActor->ParentQuest = this;
-					if (ADungeonManager* DungeonManager = Cast<ADungeonManager>(UGameplayStatics::GetActorOfClass(GetWorld(), ADungeonManager::StaticClass()))) {
+					if (ADungeonManager* DungeonManager = Cast<ADungeonManager>(UGameplayStatics::GetActorOfClass(World, ADungeonManager::StaticClass()))) {
 						TArray<ADungeonPieceActor*> EligibleLocations;
 
 						for(int i = 1; i < DungeonManager->CurrentDungeonPieces.Num(); ++i)

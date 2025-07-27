@@ -13,15 +13,16 @@
 void UAbility_Bursting_Shield::execute_Implementation()
 {
 	Super::execute_Implementation();
-
-
 	if (APlayerCharacterState* PCS = Cast<APlayerCharacterState>(GetOuter()))
 	{
 		if (APlayerCharacter* player = Cast<APlayerCharacter>(PCS->GetPawn())) {
-			player->PlayAnimMontage(MontageToPlay, 1.f);
-			if(UNiagaraComponent*NiagaraComponent = UNiagaraFunctionLibrary::SpawnSystemAttached(NiagaraSystemToPlay,player->GetMesh(),"spine_02",FVector::ZeroVector,FRotator::ZeroRotator,EAttachLocation::Type::SnapToTargetIncludingScale,false,true))
-			{
-				NC = NiagaraComponent;
+			if (MontageToPlay)
+				player->PlayAnimMontage(MontageToPlay, 1.f);
+			if (NiagaraSystemToPlay && player->GetMesh()) {
+				if(UNiagaraComponent*NiagaraComponent = UNiagaraFunctionLibrary::SpawnSystemAttached(NiagaraSystemToPlay,player->GetMesh(),"spine_02",FVector::ZeroVector,FRotator::ZeroRotator,EAttachLocation::Type::SnapToTargetIncludingScale,false,true))
+				{
+					NC = NiagaraComponent;
+				}
 			}
 		}
 	}
@@ -33,7 +34,8 @@ bool UAbility_Bursting_Shield::bShouldExecute_Implementation()
 	if (APlayerCharacterState* PCS = Cast<APlayerCharacterState>(GetOuter()))
 	{
 		if (APlayerCharacter* player = Cast<APlayerCharacter>(PCS->GetPawn())) {
-			return PCS->LearnedAbilities.Contains(this) && PCS->EquippedAbilities.Contains(this) && !GetWorld()->GetTimerManager().IsTimerActive(FCooldown) && player->CanPlayerDoAction(EResourceTypes::Stamina, staminaCost) && !bActivated;
+			UWorld* World = GetWorld();
+			return PCS->LearnedAbilities.Contains(this) && PCS->EquippedAbilities.Contains(this) && World && !World->GetTimerManager().IsTimerActive(FCooldown) && player->CanPlayerDoAction(EResourceTypes::Stamina, staminaCost) && !bActivated;
 		}
 	}
 	return false;
@@ -42,7 +44,6 @@ bool UAbility_Bursting_Shield::bShouldExecute_Implementation()
 void UAbility_Bursting_Shield::Logic()
 {
 	Super::Logic();
-
 	if (APlayerCharacterState* PCS = Cast<APlayerCharacterState>(GetOuter()))
 	{
 		if (APlayerCharacter* player = Cast<APlayerCharacter>(PCS->GetPawn())) {
@@ -52,13 +53,11 @@ void UAbility_Bursting_Shield::Logic()
 			TWeakObjectPtr<APlayerCharacter> playerSafe = player;
 			bActivated = true;
 			if (Shield > 0.f) {
-				FShieldDelegateHandle =	player->OnPlayerDamaged.AddLambda([this,playerSafe,ReturnDamage](float& Damage, const FDamageEvent& DamageEvent, AController* Controller, AActor* DamageCauser)
+				FShieldDelegateHandle = player->OnPlayerDamaged.AddLambda([this,playerSafe,ReturnDamage](float& Damage, const FDamageEvent& DamageEvent, AController* Controller, AActor* DamageCauser)
 					{
 						if (!playerSafe.IsValid() || !NC.IsValid()) return;
-
 						Shield -= Damage;
 						UE_LOG(LogTemp, Warning, TEXT("LAMBDA FUNCTION CALLED %f"),Shield);
-
 						Damage = 0;
 						if (Shield <= 0.f)
 						{
@@ -83,10 +82,13 @@ void UAbility_Bursting_Shield::Logic()
 							}
 						}
 					});
-				GetWorld()->GetTimerManager().SetTimer(FCooldown, Cooldown, false);
+				UWorld* World = GetWorld();
+				if (World && World->GetTimerManager().IsTimerActive(FCooldown)) {
+					World->GetTimerManager().ClearTimer(FCooldown);
+				}
+				if (World)
+					World->GetTimerManager().SetTimer(FCooldown, Cooldown, false);
 			}
-
 		}
-
 	}
 }

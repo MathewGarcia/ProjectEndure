@@ -87,7 +87,7 @@ public:
 	float StaminaRate = 5.f;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "LevelUpNiagara")
-	UNiagaraSystem* LevelUpNiagraSystem;
+	UNiagaraSystem* LevelUpNiagaraSystem;
 
 	UPROPERTY()
 	TArray<UQuest*> CurrentQuests;
@@ -136,10 +136,10 @@ public:
 
 	void AddItemToInventory(UItemDataObject* item);
 
-	void RemoveItemFromInventory(UItemDataObject* itemToRemove);
+	void RemoveItemFromInventory(UItemDataObject* item);
 
 
-	void RemoveItemFromInventory(UItemDataObject* itemToRemove,int Amount);
+	void RemoveItemFromInventory(UItemDataObject* item,int Amount);
 
 	TArray<UItemDataObject*> GetInventory()
 	{

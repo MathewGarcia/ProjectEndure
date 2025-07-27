@@ -13,9 +13,7 @@ void UActivateWeaponHitBox::NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimS
 	float TotalDuration, const FAnimNotifyEventReference& EventReference)
 {
 	Super::NotifyBegin(MeshComp, Animation, TotalDuration, EventReference);
-
 	if (!MeshComp) return;
-	 
 	if (APlayerCharacter* player = Cast<APlayerCharacter>(MeshComp->GetOwner()))
 	{
 		if(APlayerCharacterState*PCS = Cast<APlayerCharacterState>(player->GetPlayerState()))
@@ -26,11 +24,9 @@ void UActivateWeaponHitBox::NotifyBegin(USkeletalMeshComponent* MeshComp, UAnimS
 					Weapon->HitActors.Empty();
 					Weapon->Swing();
 				}
-
 			}
 		}
 	}
-
 }
 
 void UActivateWeaponHitBox::NotifyEnd(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
@@ -38,24 +34,19 @@ void UActivateWeaponHitBox::NotifyEnd(USkeletalMeshComponent* MeshComp, UAnimSeq
 {
 
 	Super::NotifyEnd(MeshComp, Animation, EventReference);
-
-
 	if (!MeshComp) return;
-
 	if (APlayerCharacter* player = Cast<APlayerCharacter>(MeshComp->GetOwner()))
 	{
-
 		if (APlayerCharacterState* PCS = Cast<APlayerCharacterState>(player->GetPlayerState()))
 		{
-			if (AWeapon* Weapon = Cast<AWeapon>(PCS->PlayerGear[EGearType::RHand]))
+			if (PCS->PlayerGear.Contains(EGearType::RHand))
 			{
-				/*Weapon->CapsuleComponent->SetCollisionEnabled(ECollisionEnabled::Type::NoCollision);
-				Weapon->CapsuleComponent->SetCollisionResponseToChannel(ECC_Pawn, ECollisionResponse::ECR_Ignore);*/
-				Weapon->SetIsSwinging(false);
-
+				if (AWeapon* Weapon = Cast<AWeapon>(PCS->PlayerGear[EGearType::RHand]))
+				{
+					Weapon->SetIsSwinging(false);
+				}
 			}
 		}
-
 	}
 
 

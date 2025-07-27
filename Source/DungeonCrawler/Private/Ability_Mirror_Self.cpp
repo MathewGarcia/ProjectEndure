@@ -13,12 +13,12 @@
 void UAbility_Mirror_Self::execute_Implementation()
 {
 	Super::execute_Implementation();
-
 	if (APlayerCharacterState* PCS = Cast<APlayerCharacterState>(GetOuter()))
 	{
 		if (APlayerCharacter* player = Cast<APlayerCharacter>(PCS->GetPawn()))
 		{
-			player->PlayAnimMontage(MontageToPlay, player->MontageSpeed);
+			if (MontageToPlay)
+				player->PlayAnimMontage(MontageToPlay, player->MontageSpeed);
 		}
 	}
 }
@@ -28,7 +28,8 @@ bool UAbility_Mirror_Self::bShouldExecute_Implementation()
 	if (APlayerCharacterState* PCS = Cast<APlayerCharacterState>(GetOuter()))
 	{
 		if (APlayerCharacter* player = Cast<APlayerCharacter>(PCS->GetPawn())) {
-			return PCS->LearnedAbilities.Contains(this) && PCS->EquippedAbilities.Contains(this) && !GetWorld()->GetTimerManager().IsTimerActive(FCooldown) && player->CanPlayerDoAction(EResourceTypes::Stamina, staminaCost) && player->GetCurrentWeapon() && player->GetCurrentWeapon()->WeaponType == EWeaponType::Mage;
+			UWorld* World = GetWorld();
+			return PCS->LearnedAbilities.Contains(this) && PCS->EquippedAbilities.Contains(this) && World && !World->GetTimerManager().IsTimerActive(FCooldown) && player->CanPlayerDoAction(EResourceTypes::Stamina, staminaCost) && player->GetCurrentWeapon() && player->GetCurrentWeapon()->WeaponType == EWeaponType::Mage;
 		}
 	}
 	return false;
@@ -37,51 +38,50 @@ bool UAbility_Mirror_Self::bShouldExecute_Implementation()
 void UAbility_Mirror_Self::Logic()
 {
 	Super::Logic();
-
 	UE_LOG(LogTemp, Warning, TEXT("Playing,%p"), this);
-
-	if (PlayerToSpawn) {
-		if (APlayerCharacterState* PCS = Cast<APlayerCharacterState>(GetOuter()))
+	if (!PlayerToSpawn) return;
+	if (APlayerCharacterState* PCS = Cast<APlayerCharacterState>(GetOuter()))
+	{
+		UWorld* World = GetWorld();
+		if (!World) return;
+		if (APlayerCharacter* player = Cast<APlayerCharacter>(PCS->GetPawn()))
 		{
-			if (APlayerCharacter* player = Cast<APlayerCharacter>(PCS->GetPawn()))
+			for (int i = 0; i < CloneMax; ++i)
 			{
-				for (int i = 0; i < CloneMax; ++i)
+				FActorSpawnParameters params;
+				params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+				FVector ForwardVector = player->GetActorForwardVector() * FMath::FRandRange(-Offset, Offset);
+				FVector RightVector = player->GetActorRightVector() * FMath::FRandRange(-Offset, Offset);
+				FVector NewLocation = player->GetActorLocation() + (ForwardVector + RightVector);
+				if (APlayerCharacter* ClonedPlayer = World->SpawnActor<APlayerCharacter>(PlayerToSpawn, NewLocation, player->GetActorRotation(), params))
 				{
-					FActorSpawnParameters params;
-					params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
-					FVector ForwardVector = player->GetActorForwardVector() * FMath::FRandRange(-Offset, Offset);
-					FVector RightVector = player->GetActorRightVector() * FMath::FRandRange(-Offset, Offset);
-
-					FVector NewLocation = player->GetActorLocation() + (ForwardVector + RightVector);
-					if (APlayerCharacter* ClonedPlayer = GetWorld()->SpawnActor<APlayerCharacter>(PlayerToSpawn, NewLocation, player->GetActorRotation(), params))
+					if (AAIPlayerClones* ClonedController = Cast<AAIPlayerClones>(ClonedPlayer->GetController()))
 					{
-						if (AAIPlayerClones* ClonedController = Cast<AAIPlayerClones>(ClonedPlayer->GetController()))
-						{
-							if (APlayerCharacterState* ClonedPCS = GetWorld()->SpawnActor<APlayerCharacterState>(PCS->GetClass(),params)) {
-								ClonedPlayer->SetNewSoftPCS(ClonedPCS);
-								ClonedController->SetPlayerState(ClonedPCS);
-								ClonePlayerStats(ClonedPlayer, ClonedPCS, PCS);
-								PlayerClones.Add(ClonedPlayer);
-								AIPlayerClonesControllers.Add(ClonedController);
-								PlayerCharacterStatesClones.Add(ClonedPCS);
-
-									ClonedController->Possess(ClonedPlayer);
-									ClonedController->Index = i;
-							}
-
-								player->OnAbilityUsed.AddUFunction(ClonedController, "UsePlayerAbility");
-							
+						if (APlayerCharacterState* ClonedPCS = World->SpawnActor<APlayerCharacterState>(PCS->GetClass(),params)) {
+							ClonedPlayer->SetNewSoftPCS(ClonedPCS);
+							ClonedController->SetPlayerState(ClonedPCS);
+							ClonePlayerStats(ClonedPlayer, ClonedPCS, PCS);
+							PlayerClones.Add(ClonedPlayer);
+							AIPlayerClonesControllers.Add(ClonedController);
+							PlayerCharacterStatesClones.Add(ClonedPCS);
+							ClonedController->Possess(ClonedPlayer);
+							ClonedController->Index = i;
 						}
-
-
+						player->OnAbilityUsed.AddUFunction(ClonedController, "UsePlayerAbility");
 					}
 				}
-				TWeakObjectPtr<APlayerCharacterState>SafePlayerState = PCS;
-				TWeakObjectPtr<UAbility_Mirror_Self>SafeAbility = this;
-				GetWorld()->GetTimerManager().SetTimer(FPlayerLiveCheck, [SafePlayerState, SafeAbility]
-					{
-						if (!SafePlayerState.IsValid() || !SafeAbility.IsValid()) return;
-
+			}
+			TWeakObjectPtr<APlayerCharacterState>SafePlayerState = PCS;
+			TWeakObjectPtr<UAbility_Mirror_Self>SafeAbility = this;
+			if (World->GetTimerManager().IsTimerActive(FPlayerLiveCheck)) {
+				World->GetTimerManager().ClearTimer(FPlayerLiveCheck);
+			}
+			if (World->GetTimerManager().IsTimerActive(FDuration)) {
+				World->GetTimerManager().ClearTimer(FDuration);
+			}
+			World->GetTimerManager().SetTimer(FPlayerLiveCheck, [SafePlayerState, SafeAbility]
+				{
+					if (!SafePlayerState.IsValid() || !SafeAbility.IsValid()) return;
 					if(APlayerCharacterState*LocalPCS= SafePlayerState.Get())
 					{
 						if(LocalPCS->playerStats.currentHealth <= 0)
@@ -89,61 +89,57 @@ void UAbility_Mirror_Self::Logic()
 							if (UAbility_Mirror_Self* LocalAbility = SafeAbility.Get()) {
 								for (AAIPlayerClones* Controller : LocalAbility->AIPlayerClonesControllers)
 								{
-									Controller->Destroy();
+									if (Controller) Controller->Destroy();
 								}
 								for (APlayerCharacterState* ClonedState : LocalAbility->PlayerCharacterStatesClones)
 								{
-									ClonedState->Destroy();
+									if (ClonedState) ClonedState->Destroy();
 								}
 								for (APlayerCharacter* Clone : LocalAbility->PlayerClones)
 								{
-									if (Clone->GetCurrentWeapon())
+									if (Clone && Clone->GetCurrentWeapon())
 									{
 										Clone->GetCurrentWeapon()->Destroy();
 									}
-									Clone->Destroy();
+									if (Clone) Clone->Destroy();
 								}
-								LocalAbility->GetWorld()->GetTimerManager().ClearTimer(LocalAbility->FPlayerLiveCheck);
-								LocalAbility->GetWorld()->GetTimerManager().ClearTimer(LocalAbility->FDuration);
-
+								if (LocalAbility->GetWorld()) {
+									LocalAbility->GetWorld()->GetTimerManager().ClearTimer(LocalAbility->FPlayerLiveCheck);
+									LocalAbility->GetWorld()->GetTimerManager().ClearTimer(LocalAbility->FDuration);
+								}
 							}
 						}
 					}
-
 				}, 0.1, true);
-				GetWorld()->GetTimerManager().SetTimer(FDuration, [SafeAbility]
-				{
-						if (!SafeAbility.IsValid()) return;
-
-						if (UAbility_Mirror_Self* LocalAbility = SafeAbility.Get()) {
-							for (AAIPlayerClones* Controller : LocalAbility->AIPlayerClonesControllers)
-							{
-								Controller->Destroy();
-							}
-							for(APlayerCharacterState*ClonedState : LocalAbility->PlayerCharacterStatesClones)
-							{
-								ClonedState->Destroy();
-							}
-							for (APlayerCharacter* Clone : LocalAbility->PlayerClones)
-							{
-								if(Clone->GetCurrentWeapon())
-								{
-									Clone->GetCurrentWeapon()->Destroy();
-								}
-								Clone->Destroy();
-							}
-
-							if (LocalAbility->GetWorld()->GetTimerManager().IsTimerActive(LocalAbility->FPlayerLiveCheck)) {
-								LocalAbility->GetWorld()->GetTimerManager().ClearTimer(LocalAbility->FPlayerLiveCheck);
-							}
-
-
+			World->GetTimerManager().SetTimer(FDuration, [SafeAbility]
+			{
+				if (!SafeAbility.IsValid()) return;
+				if (UAbility_Mirror_Self* LocalAbility = SafeAbility.Get()) {
+					for (AAIPlayerClones* Controller : LocalAbility->AIPlayerClonesControllers)
+					{
+						if (Controller) Controller->Destroy();
+					}
+					for(APlayerCharacterState*ClonedState : LocalAbility->PlayerCharacterStatesClones)
+					{
+						if (ClonedState) ClonedState->Destroy();
+					}
+					for (APlayerCharacter* Clone : LocalAbility->PlayerClones)
+					{
+						if(Clone && Clone->GetCurrentWeapon())
+						{
+							Clone->GetCurrentWeapon()->Destroy();
 						}
-					
-				}, Duration, false);
-
-				GetWorld()->GetTimerManager().SetTimer(FCooldown, Cooldown, false);
+						if (Clone) Clone->Destroy();
+					}
+					if (LocalAbility->GetWorld() && LocalAbility->GetWorld()->GetTimerManager().IsTimerActive(LocalAbility->FPlayerLiveCheck)) {
+						LocalAbility->GetWorld()->GetTimerManager().ClearTimer(LocalAbility->FPlayerLiveCheck);
+					}
+				}
+			}, Duration, false);
+			if (World->GetTimerManager().IsTimerActive(FCooldown)) {
+				World->GetTimerManager().ClearTimer(FCooldown);
 			}
+			World->GetTimerManager().SetTimer(FCooldown, Cooldown, false);
 		}
 	}
 }

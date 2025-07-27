@@ -11,7 +11,6 @@
 void UAbility_Quick_Chant::execute_Implementation()
 {
 	Super::execute_Implementation();
-
 	if (APlayerCharacterState* PCS = Cast<APlayerCharacterState>(GetOuter()))
 	{
 		if (APlayerCharacter* player = Cast<APlayerCharacter>(PCS->GetPawn()))
@@ -22,38 +21,37 @@ void UAbility_Quick_Chant::execute_Implementation()
 			TWeakObjectPtr<UAbility_Quick_Chant> safeAbility = this;
 			FQuickChantDelegateHandle = player->OnEnemyDamageTaken.AddLambda([safeAbility, safePlayer](AEnemy* Enemy, float& Damage)
 				{
-					if (!safePlayer.IsValid() || !safeAbility.IsValid()) return;
+					if (!safePlayer.IsValid() || !safeAbility.IsValid() || !Enemy) return;
 					UAbility_Quick_Chant* localAbility = safeAbility.Get();
 					APlayerCharacter* localPlayer = safePlayer.Get();
-					if (!localAbility || !localPlayer || !Enemy) return;
-
+					if (!localAbility || !localPlayer) return;
 					float PredictedHealth = Enemy->Health - Damage;
-
 					if (PredictedHealth <= 0.f) {
-
-						if (UNiagaraComponent* NC = UNiagaraFunctionLibrary::SpawnSystemAttached(localAbility->NiagaraSystem, localPlayer->GetMesh(), "root", FVector::ZeroVector, FRotator::ZeroRotator, EAttachLocation::Type::SnapToTargetIncludingScale, true))
-						{
-							localAbility->safeNC = NC;
+						if (localAbility->NiagaraSystem && localPlayer->GetMesh()) {
+							if (UNiagaraComponent* NC = UNiagaraFunctionLibrary::SpawnSystemAttached(localAbility->NiagaraSystem, localPlayer->GetMesh(), "root", FVector::ZeroVector, FRotator::ZeroRotator, EAttachLocation::Type::SnapToTargetIncludingScale, true))
+							{
+								localAbility->safeNC = NC;
+							}
 						}
-
 						++localAbility->CurrentKills;
-
 						if (localAbility->CurrentKills >= localAbility->KillsNeeded) {
-
 							localPlayer->MontageSpeed += localPlayer->MontageSpeed * localAbility->PercentIncrease;
 							TWeakObjectPtr<AEnemy> SafeEnemy = Enemy;
-								localPlayer->GetWorld()->GetTimerManager().SetTimer(localAbility->FDuration, [localPlayer,localAbility]
+							UWorld* World = localPlayer->GetWorld();
+							if (World && World->GetTimerManager().IsTimerActive(localAbility->FDuration)) {
+								World->GetTimerManager().ClearTimer(localAbility->FDuration);
+							}
+							if (World)
+								World->GetTimerManager().SetTimer(localAbility->FDuration, [localPlayer,localAbility]
 									{
 										if (!localAbility || !localAbility->safeNC.IsValid()) return;
-									if(UNiagaraComponent*localNC = localAbility->safeNC.Get())
-									{
-										localNC->DestroyComponent();
-									}
+										if(UNiagaraComponent*localNC = localAbility->safeNC.Get())
+										{
+											localNC->DestroyComponent();
+										}
 										localPlayer->MontageSpeed = 1.f;
-									
 									}, localAbility->Duration, false);
-							}
-						
+						}
 					}
 					localPlayer->SetPlayerState(PlayerStates::NONE);
 				});

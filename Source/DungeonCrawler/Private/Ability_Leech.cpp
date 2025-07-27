@@ -23,7 +23,7 @@ void UAbility_Leech::execute_Implementation()
 
 		if (APlayerController* PC = PCS->GetPlayerController()) {
 			if (AInGamePlayerHUD* PlayerHUD = Cast<AInGamePlayerHUD>(PC->GetHUD())) {
-				if (PlayerHUD->GetMainUIWidget())
+				if (PlayerHUD->GetMainUIWidget() && PCS->GetTotalHealth() > 0.f)
 				{
 					PCS->playerStats.currentHealth += ReturnedHealth;
 					PlayerHUD->GetMainUIWidget()->UpdateProgressBar("Health", PCS->playerStats.currentHealth / PCS->GetTotalHealth());

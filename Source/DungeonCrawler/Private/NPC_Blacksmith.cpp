@@ -18,23 +18,24 @@ void ANPC_Blacksmith::Interact_Implementation()
 
 	UE_LOG(LogTemp, Error, TEXT("I am the blacksmith"));
 
-	if(UMainGameInstance* MGI = Cast<UMainGameInstance>(GetWorld()->GetGameInstance()))
+	UWorld* World = GetWorld();
+	if (!World) return;
+	if(UMainGameInstance* MGI = Cast<UMainGameInstance>(World->GetGameInstance()))
 	{
 		if(APlayerCharacter*player = MGI->localPlayer)
 		{
 			if(APlayerCharacterController*PCC = Cast<APlayerCharacterController>(player->GetController()))
 			{
-			
 				if(UpgradeBlacksmithWidgetClass && !BlacksmithUpgradeUI)
 				{
-					BlacksmithUpgradeUI = CreateWidget<UBlacksmithUpgradeUI>(GetWorld(), UpgradeBlacksmithWidgetClass);
+					BlacksmithUpgradeUI = CreateWidget<UBlacksmithUpgradeUI>(World, UpgradeBlacksmithWidgetClass);
 
 					if(BlacksmithUpgradeUI)
 					{
 						BlacksmithUpgradeUI->AddToViewport();
 					}
 				}
-				else
+				else if (BlacksmithUpgradeUI)
 				{
 					BlacksmithUpgradeUI->SetVisibility(ESlateVisibility::Visible);
 				}
@@ -56,10 +57,13 @@ void ANPC_Blacksmith::BeginOverlap(UPrimitiveComponent* OverlappedComponent, AAc
 		if(APlayerCharacter*player = Cast<APlayerCharacter>(OtherActor))
 		{
 			player->OverlappingActor = this;
-			if (UMainPlayerWidget* MPW = player->GetMainPlayerWidget().Get())
+			TWeakObjectPtr<UMainPlayerWidget> MPWPtr = player->GetMainPlayerWidget();
+			if (MPWPtr.IsValid())
 			{
-				if (UInteractableTextWidget* InteractableTextWidget = MPW->InteractionsWidget)
+				UMainPlayerWidget* MPW = MPWPtr.Get();
+				if (MPW && MPW->InteractionsWidget)
 				{
+					UInteractableTextWidget* InteractableTextWidget = MPW->InteractionsWidget;
 					if (APlayerCharacterState* PlayerCharacterState = player->GetPlayerCharacterState()) {
 						if (FKey* InputKey = PlayerCharacterState->InputMap.Find("InteractIA")) {
 							FKey Key = (*InputKey);
@@ -75,7 +79,7 @@ void ANPC_Blacksmith::BeginOverlap(UPrimitiveComponent* OverlappedComponent, AAc
 }
 
 void ANPC_Blacksmith::OverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
-	UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+    UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
 	Super::OverlapEnd(OverlappedComponent, OtherActor, OtherComp, OtherBodyIndex);
 
@@ -89,15 +93,15 @@ void ANPC_Blacksmith::OverlapEnd(UPrimitiveComponent* OverlappedComponent, AActo
 			{
 				BlacksmithUpgradeUI->SetVisibility(ESlateVisibility::Hidden);
 			}
-
-			if (UMainPlayerWidget* MPW = player->GetMainPlayerWidget().Get())
+			TWeakObjectPtr<UMainPlayerWidget> MPWPtr = player->GetMainPlayerWidget();
+			if (MPWPtr.IsValid())
 			{
-				if (UInteractableTextWidget* InteractableTextWidget = MPW->InteractionsWidget)
+				UMainPlayerWidget* MPW = MPWPtr.Get();
+				if (MPW && MPW->InteractionsWidget)
 				{
-					InteractableTextWidget->SetVisibility(ESlateVisibility::Hidden);
+					MPW->InteractionsWidget->SetVisibility(ESlateVisibility::Hidden);
 				}
 			}
-
 			if (APlayerCharacterController* PCC = Cast<APlayerCharacterController>(player->GetController()))
 			{
 				PCC->ResetCursor();
@@ -109,7 +113,8 @@ void ANPC_Blacksmith::OverlapEnd(UPrimitiveComponent* OverlappedComponent, AActo
 void ANPC_Blacksmith::BeginPlay()
 {
 	Super::BeginPlay();
-
-	BoxComponent->OnComponentBeginOverlap.AddDynamic(this, &ANPC_Blacksmith::BeginOverlap);
-	BoxComponent->OnComponentEndOverlap.AddDynamic(this, &ANPC_Blacksmith::OverlapEnd);
+	if (BoxComponent) {
+		BoxComponent->OnComponentBeginOverlap.AddDynamic(this, &ANPC_Blacksmith::BeginOverlap);
+		BoxComponent->OnComponentEndOverlap.AddDynamic(this, &ANPC_Blacksmith::OverlapEnd);
+	}
 }

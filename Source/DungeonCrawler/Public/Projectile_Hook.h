@@ -4,12 +4,11 @@
 
 #include "CoreMinimal.h"
 #include "Projectile.h"
+#include "CableComponent.h"
 #include "Projectile_Hook.generated.h"
 
 class UAbility_Hook;
-/**
- * 
- */
+DECLARE_DELEGATE_OneParam(FOnHookedActor, AActor*);
 UCLASS()
 class DUNGEONCRAWLER_API AProjectile_Hook : public AProjectile
 {
@@ -29,7 +28,26 @@ public:
 	UPROPERTY()
 	AActor* OwningActor;
 
+	// Delegate to notify when a hook lands
+	FOnHookedActor OnHookedActor;
+
+	UPROPERTY()
+	bool bIsReturning = false;
+
 	void ReturnHookProjectile();
 
+protected:
+	virtual void BeginPlay() override;
 
+private:
+
+    UPROPERTY(EditAnywhere, Category = "Chain Cable")
+    UCableComponent* Cable;
+
+public:
+    UPROPERTY(EditDefaultsOnly, Category = "Chain Cable")
+    UStaticMesh* ChainMesh;
+
+    UPROPERTY(EditDefaultsOnly, Category = "Chain Cable")
+    UMaterialInterface* ChainMaterial;
 };

@@ -9,21 +9,29 @@
 void UPlayDodgeSound::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference)
 {
 	if (!MeshComp) return;
-
-	if (APlayerCharacter* player = Cast<APlayerCharacter>(MeshComp->GetOwner()))
+	UObject* Owner = MeshComp->GetOwner();
+	if (!Owner) return;
+	UWorld* World = nullptr;
+	if (APlayerCharacter* player = Cast<APlayerCharacter>(Owner))
 	{
-		if (UMainGameInstance* MGI = Cast<UMainGameInstance>(player->GetWorld()->GetGameInstance()))
+		World = player->GetWorld();
+		if (World)
 		{
-			MGI->PlayDodgeSound(player);
+			if (UMainGameInstance* MGI = Cast<UMainGameInstance>(World->GetGameInstance()))
+			{
+				MGI->PlayDodgeSound(player);
+			}
 		}
 	}
-	else if (AEnemy* Enemy = Cast<AEnemy>(MeshComp->GetOwner()))
+	else if (AEnemy* Enemy = Cast<AEnemy>(Owner))
 	{
-		
-			if (UMainGameInstance* MGI = Cast<UMainGameInstance>(Enemy->GetWorld()->GetGameInstance()))
+		World = Enemy->GetWorld();
+		if (World)
+		{
+			if (UMainGameInstance* MGI = Cast<UMainGameInstance>(World->GetGameInstance()))
 			{
 				MGI->PlayDodgeSound(Enemy);
 			}
-		
+		}
 	}
 }

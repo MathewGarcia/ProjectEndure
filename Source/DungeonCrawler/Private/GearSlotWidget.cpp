@@ -15,15 +15,17 @@ void UGearSlotWidget::UpdateGearSlot(UItemDataObject* newItemData)
 
 	itemDataObject = newItemData;
 	itemData = newItemData->ItemData;
-	ItemImage->SetBrushFromTexture(itemData->Image);
+	if (ItemImage && itemData && itemData->Image) {
+		ItemImage->SetBrushFromTexture(itemData->Image);
+	}
 }
 
 void UGearSlotWidget::NativeConstruct()
 {
 	Super::NativeConstruct();
-
-	GearButton->OnClicked.AddUniqueDynamic(this,&UGearSlotWidget::ResetGearSlot);
-
+	if (GearButton) {
+		GearButton->OnClicked.AddUniqueDynamic(this,&UGearSlotWidget::ResetGearSlot);
+	}
 }
 
 void UGearSlotWidget::ResetGearSlot()
@@ -36,13 +38,16 @@ void UGearSlotWidget::ResetGearSlot()
 		{
 			player->GetPlayerCharacterState()->AddItemToInventory(itemDataObject);
 		}
-
-		if(AItem*Item = itemData->ItemToSpawn->GetDefaultObject<AItem>())
+		if(itemData->ItemToSpawn)
 		{
-			player->UnEquipGear(Item);
+			if(AItem*Item = itemData->ItemToSpawn->GetDefaultObject<AItem>())
+			{
+				player->UnEquipGear(Item);
+			}
 		}
-
 	}
 	itemData = nullptr;
-	ItemImage->SetBrushFromTexture(nullptr);
+	if (ItemImage) {
+		ItemImage->SetBrushFromTexture(nullptr);
+	}
 }

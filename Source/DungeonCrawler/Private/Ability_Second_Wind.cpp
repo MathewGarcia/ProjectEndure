@@ -15,20 +15,16 @@ UAbility_Second_Wind::UAbility_Second_Wind()
 void UAbility_Second_Wind::execute_Implementation()
 {
 	Super::execute_Implementation();
-
 	if (APlayerCharacterState* PCS = Cast<APlayerCharacterState>(GetOuter()))
 	{
-
 		if (APlayerController* PC = PCS->GetPlayerController()) {
 			if (AInGamePlayerHUD* PlayerHUD = Cast<AInGamePlayerHUD>(PC->GetHUD())) {
-				if (PlayerHUD->GetMainUIWidget())
+				if (PlayerHUD->GetMainUIWidget() && PCS->GetTotalHealth() > 0.f)
 				{
 					PCS->playerStats.currentHealth += PCS->GetTotalHealth() / 2;
 					PlayerHUD->GetMainUIWidget()->UpdateProgressBar("Health", PCS->playerStats.currentHealth / PCS->GetTotalHealth());
 					PCS->LearnedAbilities.Remove(this);
-
 				}
-
 			}
 		}
 	}

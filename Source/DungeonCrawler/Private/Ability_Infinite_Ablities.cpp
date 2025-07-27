@@ -19,7 +19,7 @@ void UAbility_Infinite_Ablities::execute_Implementation()
 
 			FInfiniteAbilitiesDelegateHandle =	player->OnEnemyDamageTaken.AddLambda([safeAbility](AEnemy*Enemy, float&Damage)
 				{
-					if (!safeAbility.IsValid()) return;
+					if (!safeAbility.IsValid() || !Enemy) return;
 
 					if (UAbility_Infinite_Ablities* localAbility = safeAbility.Get()) {
 						float PredictedHP = Enemy->Health - Damage;
@@ -31,21 +31,26 @@ void UAbility_Infinite_Ablities::execute_Implementation()
 								{
 									TWeakObjectPtr<APlayerCharacterState>safePCS = PCS;
 									PCS->playerStats.currentMana = 99999.f;
-									PCS->GetWorldTimerManager().SetTimer(localAbility->FDuration, [safePCS, localAbility]
-										{
-
-											if (!safePCS.IsValid() || !localAbility) return;
-
-											if (APlayerCharacterState* localPCS = safePCS.Get())
+									UWorld* World = PCS->GetWorld();
+									if (World && World->GetTimerManager().IsTimerActive(localAbility->FDuration)) {
+										World->GetTimerManager().ClearTimer(localAbility->FDuration);
+									}
+									if (World)
+										World->GetTimerManager().SetTimer(localAbility->FDuration, [safePCS, localAbility]
 											{
-												localPCS->playerStats.currentMana = localPCS->GetTotalMana();
-												if (APlayerCharacter* localPlayer = Cast<APlayerCharacter>(localPCS->GetPawn()))
-												{
 
-													localPlayer->OnEnemyDamageTaken.Remove(localAbility->FInfiniteAbilitiesDelegateHandle);
+												if (!safePCS.IsValid() || !localAbility) return;
+
+												if (APlayerCharacterState* localPCS = safePCS.Get())
+												{
+													localPCS->playerStats.currentMana = localPCS->GetTotalMana();
+													if (APlayerCharacter* localPlayer = Cast<APlayerCharacter>(localPCS->GetPawn()))
+													{
+
+														localPlayer->OnEnemyDamageTaken.Remove(localAbility->FInfiniteAbilitiesDelegateHandle);
+													}
 												}
-											}
-										}, localAbility->Duration, false);
+											}, localAbility->Duration, false);
 
 								}
 							}

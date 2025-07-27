@@ -19,6 +19,7 @@ void UAbility_Opening_Magic::execute_Implementation()
 
 			FOpeningMagic = player->OnEnemyDamageTaken.AddLambda([this](AEnemy* Enemy, float& Damage)
 			{
+				if (!Enemy || Enemy->MaxHealth <= 0.f) return;
 				float Percent = Enemy->Health / Enemy->MaxHealth;
 				if(Percent >= 1.f)
 				{

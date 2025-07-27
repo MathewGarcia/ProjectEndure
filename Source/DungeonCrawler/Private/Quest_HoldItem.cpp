@@ -36,7 +36,9 @@ void UQuest_HoldItem::StartQuest_Implementation()
 	Super::StartQuest_Implementation();
 	if (APlayerCharacterState* PCS = Cast<APlayerCharacterState>(GetOuter()))
 	{
-		if (ADungeonCrawlerGM* GM = Cast<ADungeonCrawlerGM>(GetWorld()->GetAuthGameMode()))
+		UWorld* World = GetWorld();
+		if (!World) return;
+		if (ADungeonCrawlerGM* GM = Cast<ADungeonCrawlerGM>(World->GetAuthGameMode()))
 		{
 			if (APlayerCharacter* player = Cast<APlayerCharacter>(PCS->GetPawn())) {
 

@@ -9,10 +9,10 @@ void UAN_ResetAttackCount::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenc
                                   const FAnimNotifyEventReference& EventReference)
 {
 	Super::Notify(MeshComp, Animation, EventReference);
-
 	if (!MeshComp) return;
-
-	if(APlayerCharacter*player = Cast<APlayerCharacter>(MeshComp->GetOwner()))
+	UObject* Owner = MeshComp->GetOwner();
+	if (!Owner) return;
+	if (APlayerCharacter* player = Cast<APlayerCharacter>(Owner))
 	{
 		player->ResetAttackCount();
 	}

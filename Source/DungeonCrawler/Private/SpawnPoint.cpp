@@ -9,12 +9,11 @@
 ASpawnPoint::ASpawnPoint()
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-
 	SpawnPointMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Spawn Point Mesh"));
-	SpawnPointMesh->SetHiddenInGame(true);
-	RootComponent = SpawnPointMesh;
-
-
+	if (SpawnPointMesh) {
+		SpawnPointMesh->SetHiddenInGame(true);
+		RootComponent = SpawnPointMesh;
+	}
 }
 
 AEnemy* ASpawnPoint::SpawnEnemy()
@@ -24,7 +23,7 @@ AEnemy* ASpawnPoint::SpawnEnemy()
 	{
 		TotalWeight += pair.Value;
 	}
-
+	if (TotalWeight <= 0) return nullptr;
 	float Roll = FMath::FRandRange(0.f, TotalWeight);
 	TSubclassOf<AEnemy> EnemyChosen = nullptr;
 	for (const auto& pair : EnemySpawnTable)
@@ -39,10 +38,12 @@ AEnemy* ASpawnPoint::SpawnEnemy()
 	}
 
 	if (EnemyChosen) {
+		UWorld* World = GetWorld();
+		if (!World) return nullptr;
 		FActorSpawnParameters params;
 		params.Owner = this;
 		params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
-		if(AEnemy*SpawnedEnemy = GetWorld()->SpawnActor<AEnemy>(EnemyChosen, GetActorLocation(), GetActorForwardVector().Rotation(), params))
+		if(AEnemy*SpawnedEnemy = World->SpawnActor<AEnemy>(EnemyChosen, GetActorLocation(), GetActorForwardVector().Rotation(), params))
 		{
 			switch (SpawnPointState)
 			{

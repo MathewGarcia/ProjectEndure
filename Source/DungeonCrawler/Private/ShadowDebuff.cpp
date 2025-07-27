@@ -2,30 +2,28 @@
 
 
 #include "ShadowDebuff.h"
-
 #include "DebuffActor.h"
-#include "Engine/DamageEvents.h"
-#include "Enemy.h"
-#include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
-#include "PlayerCharacter.h"
 
 void UShadowDebuff::ExecuteDebuff_Implementation(AActor* Target, AActor* DamageCauser)
 {
 	Super::ExecuteDebuff_Implementation(Target, DamageCauser);
-
+	if (!Target || !DamageCauser) return;
+	UWorld* World = Target->GetWorld();
+	if (!World) return;
 	FVector DirectionToPlayer = Target->GetActorLocation() - DamageCauser->GetActorLocation();
 	FActorSpawnParameters params;
 	params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 	params.Owner = DamageCauser;
-
 	FVector Location = DamageCauser->GetActorLocation() + DamageCauser->GetActorForwardVector() * 10.f;
-	ADebuffActor* DebuffActor = DamageCauser->GetWorld()->SpawnActor<ADebuffActor>(ActorToSpawn,Location, DirectionToPlayer.Rotation(), params);
-	if (DebuffActor) {
-		UNiagaraComponent* NiagaraComponent = UNiagaraFunctionLibrary::SpawnSystemAtLocation(DamageCauser->GetWorld(), NiagaraSystem, DebuffActor->GetActorLocation());
+	ADebuffActor* DebuffActor = nullptr;
+	if (ActorToSpawn) {
+		DebuffActor = World->SpawnActor<ADebuffActor>(ActorToSpawn, Location, DirectionToPlayer.Rotation(), params);
 	}
-
-	Target->GetWorldTimerManager().SetTimer(FDebuffTimerHandle, [this, DebuffActor]()
+	if (DebuffActor && NiagaraSystem) {
+		UNiagaraFunctionLibrary::SpawnSystemAtLocation(World, NiagaraSystem, DebuffActor->GetActorLocation());
+	}
+	World->GetTimerManager().SetTimer(FDebuffTimerHandle, [this, DebuffActor]()
 		{
 			if (DebuffActor)
 			{
